@@ -7,19 +7,19 @@
         xmlns:local="clr-namespace:croquis"
         mc:Ignorable="d"
         ui:WindowHelper.UseModernWindowStyle="True"
-        Title="croquis" Height="900" Width="1936" MinHeight="735" MinWidth="1280" Background="#262626" SizeChanged="winFormResizeEvent" Loaded="WinLoad"
+        Title="croquis" Height="900" Width="1936" MinHeight="900" MinWidth="1936" Background="#262626" SizeChanged="WinFormResizeEvent" Loaded="WindowLoadEvent"
         >
     <Grid x:Name="MainGrid" Background="#262626">
 
-        <Border x:Name="showItem" BorderBrush="#404040" BorderThickness="1" Margin="2,2,0,2" HorizontalAlignment="Left" Width="219"  >
-            <Grid x:Name="t" >
+        <Border x:Name="croquisView" BorderBrush="#404040" BorderThickness="1" Margin="2,2,0,2" HorizontalAlignment="Left" Width="219"  >
+            <Grid x:Name="CroquisGrid" >
                 <Grid.RowDefinitions>
                     <RowDefinition Height="898*" />
                 </Grid.RowDefinitions>
 
 
-                <TreeView x:Name="croquisTreeView">
-                    
+                <TreeView x:Name="croquisTreeView" AllowDrop="True">
+
                 </TreeView>
 
 
@@ -28,11 +28,9 @@
         </Border>
 
 
-        <Grid x:Name="view" Margin="221,2,0,2" HorizontalAlignment="Left" Width="328" >
+        <Grid x:Name="view" Margin="224,2,0,2" HorizontalAlignment="Left" Width="328" >
 
-            <Border x:Name="fileGrid"  BorderBrush="#404040" BorderThickness="1" Margin="1,0,-1,0" Height="430
-                    
-                    " VerticalAlignment="Top">
+            <Border x:Name="FileGrid"  BorderBrush="#404040" BorderThickness="1" Height="400" VerticalAlignment="Top">
                 <Grid x:Name="fileSearchBox"  >
                     <Grid.RowDefinitions>
                         <RowDefinition Height="17*"/>
@@ -44,26 +42,24 @@
 
                     <!--<Button x:Name="fileLoad" Margin="294,8,10,0" Click="onClick" ClickMode="Press"  RenderTransformOrigin="-1.217,0.474" VerticalAlignment="Top" Panel.ZIndex="1" Opacity="0.25" HorizontalAlignment="Stretch" Height="21"/> -->
                     <!--                    <Image Source="/Resources/plus.png" Margin="293,11,14,0" Height="15" VerticalAlignment="Top"   /> -->
-                    <TreeView x:Name="trView" Grid.Row="1">
+                    <TreeView x:Name="DirectoryView" Grid.Row="1" AllowDrop="True">
 
                     </TreeView>
                 </Grid>
             </Border>
 
-            <Border x:Name="preViewGrid"  BorderBrush="#404040" BorderThickness="1" Margin="1,0,-1,0" Height="430
-                    
-                    " VerticalAlignment="Bottom">
-                <Grid x:Name="preViewBox" >
+            <Border x:Name="PreViewGrid"  BorderBrush="#404040" BorderThickness="1" Height="460" VerticalAlignment="Bottom" >
+                <Grid x:Name="preViewBox">
 
                     <Grid.RowDefinitions>
                         <RowDefinition Height="20*"/>
                         <RowDefinition Height="195*"/>
                     </Grid.RowDefinitions>
                     <TextBlock Grid.Row="0" x:Name="preview" Margin="10,8,155,0" FontSize="15" Height="22" VerticalAlignment="Top" ><Run Language="ko-kr" Text="미리보기"/><LineBreak/><Run/></TextBlock>
-                    <ListBox Grid.Row="1" x:Name="PicBox">
+                    <ListBox Grid.Row="1" x:Name="PictureViewer" AllowDrop="True" DataContext="">
                         <ListBox.ItemsPanel>
                             <ItemsPanelTemplate x:Name="picBoxTemplate">
-                                <UniformGrid Rows="{Binding Row}" Columns="{Binding Cols}"/>
+                                <UniformGrid Rows="{Binding Rows}" Columns="{Binding Cols}"/>
                             </ItemsPanelTemplate>
                         </ListBox.ItemsPanel>
                     </ListBox>
@@ -94,31 +90,40 @@
                        Text="타이머" Height="16"
                        VerticalAlignment="Top"
                       
-                       Margin="10,28,43,0"  
+                       Margin="12,143,41,0"  
                        
                         />
                 <TextBox x:Name="timerInput" 
                      TextWrapping="Wrap" Height="20"
                      Text="30" 
                      VerticalAlignment="Top" 
-                     Margin="0,60,41,0" HorizontalAlignment="Right" Width="172" />
+                     Margin="0,164,39,0" HorizontalAlignment="Right" Width="172" />
 
                 <TextBlock x:Name="refreshTimer" 
                        Text="휴식 시간" Height="16"
                        VerticalAlignment="Top"
                       
-                       Margin="9,133,29,0" 
+                       Margin="11,223,27,0" 
                        />
                 <TextBox x:Name="refreshTimerInput" 
                      TextWrapping="Wrap" 
                      Text="3" Height="32"
                      VerticalAlignment="Top" 
-                     Margin="0,158,24,0" HorizontalAlignment="Right" Width="189"
+                     Margin="11,244,0,0" HorizontalAlignment="Left" Width="172"
                      />
-                <CheckBox x:Name="Duplicated" Content="중복 허용" Height="27" Margin="0,209,83,0" VerticalAlignment="Top" Width="29" HorizontalAlignment="Right"/>
-                <CheckBox x:Name="random" Content="이미지 랜덤" Height="4" Margin="0,246,83,0" VerticalAlignment="Top" Width="73" HorizontalAlignment="Right"/>
+                <CheckBox x:Name="Duplicated" Content="중복 허용" Height="27" Margin="0,301,93,0" VerticalAlignment="Top" Width="29" HorizontalAlignment="Right"/>
+                <CheckBox x:Name="random" Content="이미지 랜덤" Height="4" Margin="0,335,93,0" VerticalAlignment="Top" Width="73" HorizontalAlignment="Right"/>
 
-                <Button x:Name="start" Content="Button" Margin="6,0,6,28"  VerticalAlignment="Bottom" Click="Button_Click" HorizontalAlignment="Stretch" Height="40"/>
+                <Button x:Name="start" Content="시작" Margin="6,0,6,28"  VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Height="40" PreviewMouseLeftButtonDown="start_MouseDown" />
+                <TextBlock x:Name="refreshTimer_Copy" 
+                    Height="16"
+                    VerticalAlignment="Top"  
+                    Margin="11,61,27,0"><Run Text="출력 장수"/>></TextBlock>
+                <TextBox x:Name="timerInput_Copy" 
+                    TextWrapping="Wrap" Height="20"
+                    Text="30" 
+                    VerticalAlignment="Top" 
+                    Margin="0,82,40,0" HorizontalAlignment="Right" Width="172" />
 
             </Grid>
         </Border>

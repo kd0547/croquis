@@ -1,23 +1,23 @@
-﻿using Microsoft.WindowsAPICodePack.Dialogs;
+﻿using initializationControl;
+using Microsoft.WindowsAPICodePack.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Runtime.Serialization;
-using System.Runtime.Serialization.Formatters.Binary;
-using System.Security.AccessControl;
-using System.Text;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Security.Policy;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
+
 using System.Windows.Input;
-using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+using System.Windows.Threading;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Tab;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TextBox;
 
 
 namespace croquis
@@ -36,154 +36,222 @@ namespace croquis
             this.image = image;
             this.path = path;
         }
+
+
+
     }
-
-    
-
 
     public partial class MainWindow : Window
     {
-        private double fGrid_W;
-        private double fGrid_H;
 
-        private double preGrid_W;
-        private double preGrid_H;
-
-        private double mainForm_W;
-        private double mainForm_H;
         private Point _lastMouseDown;
+
+        private ControlResize MainFormSize;
+        private ControlResize FileGridSize;
+        private ControlResize PreViewSize;
+        private CroquisPlay croquisPlay;
+
+        private static int ImageSize = 129;
 
 
         public MainWindow()
         {
-
-
-            PicBoxRowCol t = new PicBoxRowCol();
-            t.Cols = 3;
-            t.Rows = 3;
             InitializeComponent();
-            
+            SetAllowDrop();
+            PreViewGrid.Width = 328;
 
-            PicBox.DataContext = t;
+            croquisPlay = new CroquisPlay(ThreadSleep, showImage);
+            MainFormSize = new ControlResize(MainWin.Width, MainWin.Height);
+            FileGridSize = new ControlResize(FileGrid.Width, FileGrid.Height);
+            PreViewSize = new ControlResize(PreViewGrid.Width, PreViewGrid.Height);
 
 
 
-            mainForm_W = MainWin.Width;
-            mainForm_H = MainWin.Height;
-
-            fGrid_W = fileGrid.Width;
-            fGrid_H = fileGrid.Height;
-
-            preGrid_W = preViewGrid.Width;
-            preGrid_H = preViewGrid.Height;
-
-            trView.AllowDrop = true;
+            croquisTreeView.Drop += CroquisTreeDropEvent;
+        }
+        /// <summary>
+        /// Drag & Drop 설정
+        /// </summary>
+        private void SetAllowDrop()
+        {
+            DirectoryView.AllowDrop = true;
             croquisTreeView.AllowDrop = true;
+        }
 
-
-            croquisTreeView.Drop += ListItem_Drop;
+        /// <summary>
+        /// 윈도우 Load 이벤트 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void WindowLoadEvent(object sender, RoutedEventArgs e)
+        {
+            //디렉토리 가져오기 
+            GetLocalFile();
 
         }
 
-        private TreeViewItem datasource;
-
-
-
-        
-        private void PreViewMouseLeftButDow(object sender, MouseEventArgs e)
+        private void TargetTreeViewDragEnter(object sender, DragEventArgs e)
         {
 
-            DependencyObject deo = trView.InputHitTest(e.GetPosition(trView)) as DependencyObject;
+        }
+
+        //https://it10.tistory.com/8
+        //https://learn.microsoft.com/ko-kr/dotnet/api/system.windows.dragdrop.dodragdrop?view=windowsdesktop-7.0
+        //https://www.csharpstudy.com/WinForms/WinForms-dragdrop.aspx
+        //https://icodebroker.tistory.com/entry/CWPF-DragDrop-%ED%81%B4%EB%9E%98%EC%8A%A4-DoDragDrop-%EC%A0%95%EC%A0%81-%EB%A9%94%EC%86%8C%EB%93%9C%EB%A5%BC-%EC%82%AC%EC%9A%A9%ED%95%B4-%EB%93%9C%EB%9E%98%EA%B7%B8-%EB%93%9C%EB%A1%AD-%EC%82%AC%EC%9A%A9%ED%95%98%EA%B8%B0
+        //https://learn.microsoft.com/en-us/answers/questions/363157/wpf-drag-and-drop-from-listbox-into-treeview
+
+
+
+        #region 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void SourceTreeViewEntryMouseEvent(object sender, MouseEventArgs e)
+        {
+            TreeViewItem SendItem = (TreeViewItem)sender;
+            Debug.WriteLine(" T!: " + SendItem.ToString());
+        }
+        #endregion
+
+        /// <summary>
+        /// 소스 트리뷰를 클릭할 시 발생하는 이벤트
+        /// Drag & Drop의 시작 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void PreViewMouseLeftButtonDownEvent(object sender, MouseEventArgs e)
+        {
+            DependencyObject dependencyObject = DirectoryView.InputHitTest(e.GetPosition(DirectoryView)) as DependencyObject;
             try
             {
-                if (deo is TextBlock)
+                if (dependencyObject is TextBlock)
                 {
-                    TreeViewItem item = e.Source as TreeViewItem;
-
-                    TreeViewItem t = sender as TreeViewItem;
-                    
-
-                    DragDrop.DoDragDrop(trView, trView.SelectedValue, DragDropEffects.Move);
-                    e.Handled = true;
-
+                    TreeViewItem SendItem = sender as TreeViewItem;
+                    DragDrop.DoDragDrop(dependencyObject, DirectoryView.SelectedValue, DragDropEffects.Move);
                 }
-
-            } catch (ArgumentNullException ex)
-            {
-
             }
-
-            
-            
+            catch (ArgumentNullException ex)
+            {
+                Debug.WriteLine(ex.Message);
+            }
         }
 
-        private void ListItem_Drop(object sender, DragEventArgs e)
+        /// <summary>
+        /// 타겟 트리뷰에서 Drop 시 발생하는 이벤트 
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void CroquisTreeDropEvent(object sender, DragEventArgs e)
         {
-            TreeViewItem _tree = e.Source as TreeViewItem;
             TreeViewItem obj = e.Data.GetData(typeof(TreeViewItem)) as TreeViewItem;
+            TreeViewItem targetTreeViewItem = new TreeViewItem();
 
-            
+            targetTreeViewItem.Expanded += new RoutedEventHandler(TargetTreeViewItemExpanded);
+            targetTreeViewItem.MouseDoubleClick += FileItemDoubleClickEvent;
+            targetTreeViewItem.Header = obj.Header;
+            targetTreeViewItem.Tag = obj.Tag;
 
-            //Debug.WriteLine("tree" + _tree.ToString());
+            TargetGetDirectories(targetTreeViewItem);
+            TargetGetFile(targetTreeViewItem);
+            croquisTreeView.Items.Add(targetTreeViewItem);
+        }
 
-            Debug.WriteLine("obj" + obj.ToString());
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="parent"></param>
+        private void TargetGetDirectories(TreeViewItem parent)
+        {
+            string path = parent.Tag.ToString();
+            String Extension = Path.GetExtension(path);
 
-            
-           
+            if (IsImageExtension(Extension)) return;
+            if (parent == null) return;
+            if (parent.Items.Count != 0) return;
 
-            TreeViewItem item = new TreeViewItem();
-
-            item.Header = obj.Header;
-            item.Name = obj.Name;
+            DirectoryInfo directory = new DirectoryInfo(path);
+            if (directory != null) ;
 
 
-            if (obj != null)
+            if (directory.Attributes == FileAttributes.Directory)
             {
-                croquisTreeView.Items.Add(item);
+                foreach (DirectoryInfo dir in directory.GetDirectories())
+                {
+                    TreeViewItem item = new TreeViewItem();
+                    item.Tag = dir.FullName;
+                    item.Header = dir.Name;
+                    item.Expanded += new RoutedEventHandler(TargetTreeViewItemExpanded);
+                    item.MouseDoubleClick += FileItemDoubleClickEvent;
+                    TargetGetFile(item);
+                    parent.Items.Add(item);
+                }
+            }
+        }
+        /// <summary>
+        /// 디렉토리에 있는 이미지 파일을 가져온다. 
+        /// </summary>
+        /// <param name="parent"></param>
+        private void TargetGetFile(TreeViewItem parent)
+        {
+            string filePath = parent.Tag.ToString();
+            DirectoryInfo directory = new DirectoryInfo(filePath);
+
+            if (filePath == null) return;
+            if (directory == null) return;
+
+            if (directory.Attributes == FileAttributes.Directory)
+            {
+                foreach (FileInfo dir in directory.GetFiles())
+                {
+                    TreeViewItem item = new TreeViewItem();
+                    item.Tag = dir.FullName;
+                    item.Header = dir.Name;
+                    item.PreviewMouseLeftButtonDown += ImageClickEvent;
+
+
+                    parent.Items.Add(item);
+                }
             }
 
-            
-
-
         }
 
-
-        private void TreeMouseDragOver(object sender, DragEventArgs e)
+        /// <summary>
+        /// 디렉토리 확장 시 발생하는 이벤트 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void TargetTreeViewItemExpanded(object sender, RoutedEventArgs e)
         {
-            
-        }
-        
+            TreeViewItem item = sender as TreeViewItem;
 
+            if (item == null) return;
 
-        void onClick(object sender, RoutedEventArgs e)
-        {
-            CommonOpenFileDialog ofd = new CommonOpenFileDialog();
-            ofd.IsFolderPicker = true;
-            //ofd.Multiselect = true;
-
-            String[] pathDirs = null;
-
-            if(ofd.ShowDialog() == CommonFileDialogResult.Ok)
+            foreach (TreeViewItem subItem in item.Items)
             {
-                pathDirs = ofd.FileNames.ToArray();
-
-                ListDirectory(trView, pathDirs[0]);
-            } else
-            {
-                return;
+                TargetGetDirectories(subItem);
             }
-            
+
         }
-        //http://inasie.tistory.com/19
-        //https://learn.microsoft.com/ko-kr/dotnet/api/system.windows.controls.treeviewitem?view=windowsdesktop-7.0
-        
+
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void giveFeedBack(object sender, GiveFeedbackEventArgs e)
         {
-            if(e.Effects == DragDropEffects.Move)
+            if (e.Effects == DragDropEffects.Move)
             {
                 e.UseDefaultCursors = false;
                 Mouse.SetCursor(Cursors.Hand);
-            } else
+            }
+            else
             {
                 e.UseDefaultCursors = true;
             }
@@ -191,9 +259,32 @@ namespace croquis
         }
 
 
-        private void WinLoad(object sender, RoutedEventArgs e)
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        System.Windows.Forms.Screen[] screens = System.Windows.Forms.Screen.AllScreens;
+        private void Window_LocationChanged(object sender, EventArgs e)
         {
-            foreach(string dir in Directory.GetLogicalDrives())
+            int sum = 0;
+            foreach (var item in screens)
+            {
+                sum += item.WorkingArea.Width;
+                if (sum >= this.Left + this.Width / 2)
+                {
+                    this.MaxHeight = item.WorkingArea.Height;
+                    break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 로컬디스크를 가져온다.
+        /// </summary>
+        private void GetLocalFile()
+        {
+            foreach (string dir in Directory.GetLogicalDrives())
             {
                 try
                 {
@@ -203,32 +294,33 @@ namespace croquis
                     item.Tag = dir;
                     item.Expanded += new RoutedEventHandler(itemExpanded);
 
-                    trView.Items.Add(item);
-
+                    DirectoryView.Items.Add(item);
                     GetSubDirectories(item);
-
-                } catch ( UnauthorizedAccessException uaae)
+                }
+                catch (UnauthorizedAccessException uaae)
                 {
 
-                } catch(IOException ioe)
+                }
+                catch (IOException ioe)
                 {
 
                 }
             }
         }
-
-        private void GetSubDirectories(TreeViewItem item) 
+        //https://stackoverflow.com/questions/61041282/showing-image-thumbnail-with-mouse-cursor-while-dragging
+        /// <summary>
+        /// 하위 폴더를 가져온다.
+        /// </summary>
+        /// <param name="parent"></param>
+        private void GetSubDirectories(TreeViewItem parent)
         {
-            if(item == null) return;
-            if(item.Items.Count != 0) return;
-
-
-
+            if (parent == null) return;
+            if (parent.Items.Count != 0) return;
 
             try
             {
-                string subDir = item.Tag as string;
-                DirectoryInfo directory = new DirectoryInfo(subDir);
+                string SubDirectory = parent.Tag as string;
+                DirectoryInfo directory = new DirectoryInfo(SubDirectory);
 
                 foreach (DirectoryInfo dir in directory.GetDirectories())
                 {
@@ -242,129 +334,192 @@ namespace croquis
 
 
                     subItem.Expanded += new RoutedEventHandler(itemExpanded);
-                    subItem.PreviewMouseDoubleClick += showPic;
-                    subItem.PreviewMouseDown += PreViewMouseLeftButDow;
-                    subItem.DragOver += TreeMouseDragOver;
+                    subItem.PreviewMouseDoubleClick += FileItemDoubleClickEvent;
+                    subItem.PreviewMouseDown += PreViewMouseLeftButtonDownEvent;
+                    subItem.MouseEnter += SourceTreeViewEntryMouseEvent;
                     //subItem.GiveFeedback += giveFeedBack;
-                    subItem.PreviewGiveFeedback += giveFeedBack;
-                    item.Items.Add(subItem);
+                    //subItem.PreviewGiveFeedback += giveFeedBack;
+                    parent.Items.Add(subItem);
 
                 }
 
-                
 
-            } catch (UnauthorizedAccessException uaae)
+
+            }
+            catch (UnauthorizedAccessException uaae)
             {
 
-            } catch (IOException ioe)
+            }
+            catch (IOException ioe)
             {
 
             }
 
         }
 
-        private void giveFeedBackEvent(object sender, GiveFeedbackEventArgs e)
+
+
+
+        //https://stackoverflow.com/questions/61041282/showing-image-thumbnail-with-mouse-cursor-while-dragging
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void FileItemDoubleClickEvent(object sender, MouseButtonEventArgs e)
         {
-
-        }
-        
-
-        private void showPic(object sender, MouseButtonEventArgs e)
-        {
-            
-
             try
             {
-                TreeViewItem clickItem = (TreeViewItem) sender;
-                
-                if(clickItem.Items.Count == 0)
+                TreeViewItem clickItem = (TreeViewItem)sender;
+                DirectoryInfo directory = new DirectoryInfo(clickItem.Tag as string);
+                FileInfo[] fileInfos = directory.GetFiles();
+
+                if (fileInfos.Length != 0)
                 {
+                    Debug.WriteLine(fileInfos.Length);
+
                     showImageFile(clickItem.Tag.ToString());
-                } 
+                }
 
-                
 
-            } catch (Exception exception)
+            }
+            catch (Exception exception)
             {
                 MessageBox.Show(exception.Message);
             }
         }
 
+        /// <summary>
+        /// 폴더에서 이미지를 가져오는 함수
+        /// </summary>
+        /// <param name="path"></param>
         private void showImageFile(string path)
         {
-            PicBox.Items.Clear();
+            PictureViewer.Items.Clear();
 
             DirectoryInfo directory = new DirectoryInfo(path);
             int count = directory.GetFiles().Length;
-            PicBoxRowCol p = (PicBoxRowCol) PicBox.DataContext;
-            int col = p.Cols;
+            int col = calculateCol((int)PreViewGrid.Width);
+            int row = (count / col) + 1;
 
-            int row = (count / col) + 1 ;
-
-            Debug.WriteLine(count);
-            Debug.WriteLine(col);
-            Debug.WriteLine(row);
-
-            PicBoxRowCol temp = new PicBoxRowCol();
-            temp.Cols = col;
-            temp.Rows = row; 
-
-            PicBox.DataContext = temp;
+            Debug.WriteLine("Rows " + row + ", Cols " + col);
+            PictureViewer.DataContext = new PictureBoxRowCols(row, col);
 
             foreach (FileInfo file in directory.GetFiles())
             {
-                Debug.WriteLine(file.FullName);
 
-
+                if (!IsImageExtension(file.FullName))
+                {
+                    continue;
+                }
+                //Debug.WriteLine(file.FullName);
                 Image img = new Image();
-                
-                img.Width = 129;
-                img.Height = 129;
+
+                img.Width = ImageSize;
+                img.Height = ImageSize;
 
                 BitmapImage bitmapImage = new BitmapImage();
                 bitmapImage.BeginInit();
                 bitmapImage.UriSource = new Uri(file.FullName);
-                bitmapImage.DecodePixelWidth = 129;
+                bitmapImage.DecodePixelWidth = ImageSize;
                 bitmapImage.EndInit();
 
                 img.Source = bitmapImage;
                 img.Tag = file.FullName;
-                PicBox.Items.Add(img);
+
                 img.MouseLeftButtonDown += ImageClickEvent;
+                PictureViewer.Items.Add(img);
             }
-            
-            
-
-
-
-
         }
 
-      
-
-
-        private void ImageClickEvent(object sender, RoutedEventArgs e)
+        /// <summary>
+        /// 이미지 확장자 체크
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns></returns>
+        private bool IsImageExtension(string path)
         {
-            Image send = (Image)sender;
+            string extension = Path.GetExtension(path);
+            string _extension = extension.ToLower();
+            string[] extensionArray = new string[] { ".jpg", ".jpeg", ".bmp", ".exif", ".png", ".tif", ".tiff" };
+
+            foreach (string e in extensionArray)
+            {
+                if (e.Equals(_extension))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private BitmapImage createImage(String ImagePath)
+        {
+            BitmapImage bitmapImage = new BitmapImage();
+            bitmapImage.BeginInit();
+            bitmapImage.UriSource = new Uri(ImagePath);
+            bitmapImage.DecodePixelWidth = ImageSize;
+            bitmapImage.EndInit();
+
+            return bitmapImage;
+        }
+
+
+
+        /// <summary>
+        /// PreView의 width크기를 가져와 
+        /// </summary>
+        /// <param name="width"></param>
+        /// <returns></returns>
+        private int calculateCol(int width)
+        {
+            return (int)width / ImageSize;
+        }
+
+
+
+        /// <summary>
+        /// 이미지 미리보기에서 이미지를 클릭하면 원본 이미지를 확인할 수 있다. 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void ImageClickEvent(object sender, MouseEventArgs e)
+        {
+            Uri url = null;
+            if (sender is Image)
+            {
+                Image send = sender as Image;
+                url = new Uri(send.Tag.ToString());
+            }
+            if (sender is TreeViewItem)
+            {
+                TreeViewItem treeViewItem = sender as TreeViewItem;
+                url = new Uri(treeViewItem.Tag.ToString());
+
+            }
+
+            if (url == null) return;
 
             BitmapImage bitmapImage = new BitmapImage();
             bitmapImage.BeginInit();
-            bitmapImage.UriSource = new Uri(send.Tag.ToString());
+            bitmapImage.UriSource = url;
             bitmapImage.EndInit();
 
             mainContent.Source = bitmapImage;
         }
 
 
+
+
         private void itemExpanded(object sender, RoutedEventArgs e)
         {
-            
+
             TreeViewItem item = sender as TreeViewItem;
 
-            if(item == null ) return;
+            if (item == null) return;
             if (item.Items.Count == 0) return;
 
-            foreach(TreeViewItem subItem in item.Items)
+            foreach (TreeViewItem subItem in item.Items)
             {
                 GetSubDirectories(subItem);
             }
@@ -372,59 +527,12 @@ namespace croquis
 
 
 
-        private void ListDirectory(TreeView treeView, String path)
-        {
-            
 
-            var stack = new Stack<TreeViewItem>();
-            var rootDirectory = new DirectoryInfo(path);
-
-            var node = new TreeViewItem()
-            {
-                Header = rootDirectory.Name,
-                Tag = rootDirectory
-            };
-            stack.Push(node);
-
-            try
-            {
-                while (stack.Count > 0)
-                {
-                    var currnetNode = stack.Pop();
-                    var directoryInfo = (DirectoryInfo)currnetNode.Tag;
-
-
-                    foreach (var directory in directoryInfo.GetDirectories())
-                    {
-                        if (IsNotHiddenDirectory(directory))
-                        {
-                            continue;
-                        }
-
-                        var childDirectoryNode = new TreeViewItem() {Header = directory.Name, Tag = directory };
-
-                        currnetNode.Items.Add(childDirectoryNode);
-                        stack.Push(childDirectoryNode);
-                    }
-
-                    foreach (var file in directoryInfo.GetFiles())
-                    {
-                        var treeNode = new TreeViewItem() {Header = file.Name };
-
-                        currnetNode.Items.Add(treeNode);
-                    }
-                }
-            }
-            catch (UnauthorizedAccessException e)
-            {
-
-            }
-
-
-            treeView.Items.Add(node);
-
-
-        }
+        /// <summary>
+        /// 숨김파일 또는 시스템 파일
+        /// </summary>
+        /// <param name="directory"></param>
+        /// <returns></returns>
         private bool IsNotHiddenDirectory(DirectoryInfo directory)
         {
             string[] attributes = directory.Attributes.ToString().Split(',');
@@ -440,66 +548,124 @@ namespace croquis
             return false;
         }
 
-        //파일 탐색기
-        //void onClick(object sender, RoutedEventArgs e)
-        //{
-
-        //    var fileContent = string.Empty;
-        //    var filePath = string.Empty;
-
-        //    using (OpenFileDialog ofd = new OpenFileDialog())
-        //    {
-        //        ofd.InitialDirectory = "c:\\";
-        //        ofd.Filter = "txt files (*.txt)|*.txt|All files (*.*)|*.*";
-        //        ofd.FilterIndex = 2;
-        //        ofd.RestoreDirectory = true;
-
-        //        if (ofd.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-        //        {
-        //            //Get the path of specified file
-        //            filePath = ofd.FileName;
-
-        //            //Read the contents of the file into a stream
-        //            var fileStream = ofd.OpenFile();
-
-        //            using (StreamReader reader = new StreamReader(fileStream))
-        //            {
-        //                fileContent = reader.ReadToEnd();
-        //            }
-
-
-        //        }
-        //    }
-
-
-
-
-
-
-        //}
-
-        private void Button_Click(object sender, RoutedEventArgs e)
+        /// <summary>
+        /// 윈도우 창을 드래그로 변경시 동작하는 이벤트
+        /// 화면의 크기가 변경되면 FileGrid와 PreViewGrid의 Height가 변경된다. 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void WinFormResizeEvent(object sender, SizeChangedEventArgs e)
         {
 
+            ControlSize tempsize = MainFormSize.minus(MainWin.Width, MainWin.Height);
+            double _temp = tempsize.height / 2;
+
+            if (WindowState == WindowState.Maximized)
+            {
+                double MaxWindow = MainGrid.ActualHeight / 2;
+
+
+                FileGrid.Height = MaxWindow - 3; // margin 값 수치 조정 
+                PreViewGrid.Height = MaxWindow - 3; // margin 값 수치 조정 
+            }
+            else
+            {
+                //파일 그리드와 미리보기 그리드의 Height를 재설정한다.
+                FileGrid.Height = FileGridSize.plusHeight(_temp);
+                PreViewGrid.Height = PreViewSize.plusHeight(_temp);
+            }
         }
 
-        private void winFormResizeEvent(object sender, SizeChangedEventArgs e)
+        public static List<string> imagePath = new List<string>();
+        int i = 0;
+
+        private void GetCroquisFile(TreeViewItem item)
         {
-            double temp_W = MainWin.Width - mainForm_W;
-            double temp_H = MainWin.Height - mainForm_H;
-            int _temp = (int) temp_H / 2;
+            if (IsImageExtension(item.Tag.ToString()))
+            {
+                imagePath.Add(item.Tag.ToString());
+            }
 
-            fileGrid.Height = fGrid_H + _temp;
-            preViewGrid.Height = preGrid_H + _temp;
+            if (item.Items.Count == 0) return;
+
+
+            foreach (TreeViewItem subItem in item.Items)
+            {
+                GetCroquisFile(subItem);
+            }
+
         }
+        Thread myThread;
+
+        private void WarningBox(string message)
+        {
+            MessageBox.Show(message, "경고", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+
+        private void start_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (croquisTreeView.Items.Count == 0)
+            {
+                WarningBox("이미지 파일이 없습니다.");
+                return;
+            }
+
+            foreach (TreeViewItem treeViewItem in croquisTreeView.Items)
+            {
+                GetCroquisFile(treeViewItem);
+            }
+
+            Button button = sender as Button;
+            if (button == null) { return; }
+
+            croquisPlay.Interval = 10000;
+            croquisPlay.RefreshInterval = 3000;
+
+            if (button.Content.ToString().Equals("시작"))
+            {
+
+                button.Content = "중지";
+                if (imagePath.Count > 0)
+                {
+                    //myThread = new Thread(StartCroquis);
+                    //myThread.Start(imagePath);
+                    croquisPlay.run(imagePath);
+                }
+                return;
+            }
+
+
+            if (button.Content.ToString().Equals("중지"))
+            {
+                croquisPlay.stop();
+                button.Content = "시작";
+
+                return;
+            }
+        }
+
+        private void showImage(string path)
+        {
+
+            Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
+            {
+                if(path == null) { mainContent.Source = null; return; }
+                Uri url = new Uri(path);
+                Debug.WriteLine(path);
+                BitmapImage bitmapImage = new BitmapImage();
+                bitmapImage.BeginInit();
+                bitmapImage.UriSource = url;
+                bitmapImage.EndInit();
+                mainContent.Source = bitmapImage;
+
+            }));
+        }
+
+        private void ThreadSleep(int time)
+        {
+            Thread.Sleep(time);
+        }
+
     }
 
-    public class PicBoxRowCol
-    {
-        public int Rows { get; set; }
-        public int Cols { get; set; }
-    }
-
-    
-    
 }

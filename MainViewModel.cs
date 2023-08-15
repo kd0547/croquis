@@ -1,5 +1,4 @@
-﻿using System;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 
 public class MainViewModel : INotifyPropertyChanged
 {
@@ -8,8 +7,8 @@ public class MainViewModel : INotifyPropertyChanged
     #endregion
 
     public MainViewModel()
-	{
-	}
+    {
+    }
 
-    
+
 }
