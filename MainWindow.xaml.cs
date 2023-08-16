@@ -1,6 +1,7 @@
 ﻿using initializationControl;
 using Microsoft.WindowsAPICodePack.Dialogs;
 using System;
+using System.CodeDom;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -595,13 +596,18 @@ namespace croquis
             }
 
         }
-        Thread myThread;
+        
 
         private void WarningBox(string message)
         {
             MessageBox.Show(message, "경고", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void start_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (croquisTreeView.Items.Count == 0)
@@ -618,8 +624,19 @@ namespace croquis
             Button button = sender as Button;
             if (button == null) { return; }
 
-            croquisPlay.Interval = 10000;
-            croquisPlay.RefreshInterval = 3000;
+            int timer = 0;
+            int refreshTimer = 0;
+
+            try
+            {
+                timeCheck(out timer, out refreshTimer);
+
+                croquisPlay.Interval = timer * 1000;
+                croquisPlay.RefreshInterval = refreshTimer * 1000;
+            } catch (FormatException FormatException)
+            {
+                WarningBox("시간은 초 단위만 사용할 수 있습니다. ");
+            }
 
             if (button.Content.ToString().Equals("시작"))
             {
@@ -627,8 +644,7 @@ namespace croquis
                 button.Content = "중지";
                 if (imagePath.Count > 0)
                 {
-                    //myThread = new Thread(StartCroquis);
-                    //myThread.Start(imagePath);
+
                     croquisPlay.run(imagePath);
                 }
                 return;
@@ -642,6 +658,24 @@ namespace croquis
 
                 return;
             }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="timer"></param>
+        /// <param name="refreshTimer"></param>
+        /// <exception cref="FormatException"></exception>
+        private void timeCheck(out int timer,out int refreshTimer)
+        {
+            bool time = int.TryParse(timerInput.Text, out timer);
+            bool refreshTime = int.TryParse(refreshTimerInput.Text, out refreshTimer);
+
+            if(!time || !refreshTime)
+            {
+                throw new FormatException();
+            }
+
         }
 
         private void showImage(string path)

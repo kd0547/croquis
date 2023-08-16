@@ -115,11 +115,11 @@
                 <CheckBox x:Name="random" Content="이미지 랜덤" Height="4" Margin="0,335,93,0" VerticalAlignment="Top" Width="73" HorizontalAlignment="Right"/>
 
                 <Button x:Name="start" Content="시작" Margin="6,0,6,28"  VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Height="40" PreviewMouseLeftButtonDown="start_MouseDown" />
-                <TextBlock x:Name="refreshTimer_Copy" 
+                <TextBlock x:Name="page" 
                     Height="16"
                     VerticalAlignment="Top"  
-                    Margin="11,61,27,0"><Run Text="출력 장수"/>></TextBlock>
-                <TextBox x:Name="timerInput_Copy" 
+                    Margin="11,61,27,0"><Run Text="출력 장수"/></TextBlock>
+                <TextBox x:Name="page_input" 
                     TextWrapping="Wrap" Height="20"
                     Text="30" 
                     VerticalAlignment="Top" 
