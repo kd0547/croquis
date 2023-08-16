@@ -1,6 +1,5 @@
 
 
-![화면 캡처 2023-08-16 123817](https://github.com/kd0547/croquis/assets/86393702/b9cc66eb-6f61-4b13-a3b4-7e7c40fb00ce)
 
 
 
