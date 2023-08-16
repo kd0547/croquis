@@ -1,10 +1,11 @@
 
 
 
+## Links
+- [download](https://github.com/kd0547/croquis/releases/tag/v0.5s)
 
 
-
-## 개발 이력
+## history
 
 [2023-08-16]
 
