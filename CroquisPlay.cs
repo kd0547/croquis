@@ -12,11 +12,15 @@ public class CroquisPlay
     public delegate void Show(string path);
     public delegate void Stop();
     public delegate void Finish();
+    public delegate void Delay(int milliseconds);
 
     public WaitCallback play { get; set; }
     
     public Sleep sleep { get; set; }
     public Show show { get; set; }
+
+    
+    
 
     private PlayStatus status = PlayStatus.Play;
     
@@ -44,6 +48,19 @@ public class CroquisPlay
         ThreadPool.QueueUserWorkItem(PrivateRun, o);
     }
 
+    public void delay(int second)
+    {
+        DateTime now = DateTime.Now;
+        TimeSpan duration = new TimeSpan(0, 0, 0, 0, second);
+
+        DateTime dateTimeAdd = now.Add(duration);
+
+        while(dateTimeAdd >= now)
+        {
+            now = DateTime.Now;
+        }
+    }
+
     public void stop()
     {
         if(status == PlayStatus.Stop) 
@@ -58,33 +75,43 @@ public class CroquisPlay
     }
 
 
+    private int randomRun(int max)
+    {
+        Random random = new Random();
+
+        return random.Next(0,max);
+    }
+
     private void PrivateRun(object o)
     {
         List<string> path = o as List<string>;
         if(path == null) { return; };
 
         int c = this.count;
-
+        //int i = 0;
         if(c == 0) 
         {
             c = path.Count;
         }
-        
-        for(int i = 0; i < c; i++)
+
+        for(int i = 0;i < c;i++)
         {
             if(status == PlayStatus.Stop)
             {
-                Debug.WriteLine("종료");
                 status = PlayStatus.Play;
-                break;
+                return;
             }
+            string s= path[randomRun(path.Count)];
 
-            show(path[i]);
-            sleep(Interval);
+            Debug.WriteLine(s);
+            show(s);
+            //sleep(Interval);
+            delay(Interval);
             show(null);
-            sleep(RefreshInterval);
+            //sleep(RefreshInterval);
+            delay(RefreshInterval);
+            
         }
-
     }
     
 

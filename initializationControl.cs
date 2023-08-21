@@ -15,8 +15,8 @@
 
     public class ControlResize
     {
-        private double default_width { get; }
-        private double default_height { get; }
+        public double default_width { get; set; }
+        public double default_height { get; set; }
 
         public ControlResize() { }
 
@@ -40,6 +40,11 @@
         public double plusHeight(double _height)
         {
             return default_height + _height;
+        }
+
+        public double plusWidth(double _width)
+        {
+            return default_width + _width;
         }
 
     }

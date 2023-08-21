@@ -9,7 +9,7 @@
         ui:WindowHelper.UseModernWindowStyle="True"
         Title="croquis" Height="900" Width="1936" MinHeight="900" MinWidth="1936" Background="#262626" SizeChanged="WinFormResizeEvent" Loaded="WindowLoadEvent"
         >
-    <Grid x:Name="MainGrid" Background="#262626">
+    <Grid x:Name="MainGrid" Background="#262626" >
 
         <Border x:Name="croquisView" BorderBrush="#404040" BorderThickness="1" Margin="2,2,0,2" HorizontalAlignment="Left" Width="219"  >
             <Grid x:Name="CroquisGrid" >
@@ -27,6 +27,7 @@
 
         </Border>
 
+        <GridSplitter Width="3" HorizontalAlignment="Left" Margin="221,0,0,0" Background="#00000000" />
 
         <Grid x:Name="view" Margin="224,2,0,2" HorizontalAlignment="Left" Width="328" >
 
@@ -38,7 +39,7 @@
 
 
                     </Grid.RowDefinitions>
-                    <TextBlock x:Name="fileSearch" Margin="10,0,0,0" FontSize="15" HorizontalAlignment="Left" Width="75" Height="20" VerticalAlignment="Center"><Run Text="파일탐색기"/></TextBlock>
+                    <TextBlock x:Name="fileSearch" Margin="10,0,0,0" FontSize="15" HorizontalAlignment="Left" Width="75" Height="20" VerticalAlignment="Center" Foreground="#FFD8D8D8"><Run Text="파일탐색기" Foreground="#FFD8D8D8"/></TextBlock>
 
                     <!--<Button x:Name="fileLoad" Margin="294,8,10,0" Click="onClick" ClickMode="Press"  RenderTransformOrigin="-1.217,0.474" VerticalAlignment="Top" Panel.ZIndex="1" Opacity="0.25" HorizontalAlignment="Stretch" Height="21"/> -->
                     <!--                    <Image Source="/Resources/plus.png" Margin="293,11,14,0" Height="15" VerticalAlignment="Top"   /> -->
@@ -48,15 +49,15 @@
                 </Grid>
             </Border>
 
-            <Border x:Name="PreViewGrid"  BorderBrush="#404040" BorderThickness="1" Height="460" VerticalAlignment="Bottom" >
+            <Border x:Name="PreViewGrid"  BorderBrush="#404040" BorderThickness="1" Height="460" VerticalAlignment="Bottom" SizeChanged="PreViewGridResizeEvent">
                 <Grid x:Name="preViewBox">
 
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="20*"/>
-                        <RowDefinition Height="195*"/>
+                        <RowDefinition Height="29*"/>
+                        <RowDefinition Height="429*"/>
                     </Grid.RowDefinitions>
-                    <TextBlock Grid.Row="0" x:Name="preview" Margin="10,8,155,0" FontSize="15" Height="22" VerticalAlignment="Top" ><Run Language="ko-kr" Text="미리보기"/><LineBreak/><Run/></TextBlock>
-                    <ListBox Grid.Row="1" x:Name="PictureViewer" AllowDrop="True" DataContext="">
+                    <TextBlock x:Name="preview" Margin="5,0,160,0" FontSize="15" Height="22" VerticalAlignment="Center" Foreground="#FFD8D8D8" ><Run Language="ko-kr" Text="미리보기"/><LineBreak/><Run/></TextBlock>
+                    <ListBox Grid.Row="1" x:Name="PictureViewer" AllowDrop="True" Background="#FF494949" >
                         <ListBox.ItemsPanel>
                             <ItemsPanelTemplate x:Name="picBoxTemplate">
                                 <UniformGrid Rows="{Binding Rows}" Columns="{Binding Cols}"/>
@@ -69,10 +70,9 @@
             </Border>
         </Grid>
 
+        <GridSplitter x:Name="view_contentSplitter" Width="3" HorizontalAlignment="Left" Margin="552,0,0,0" Background="#00000000" PreviewMouseDown="splitterMouseDownEvent" PreviewMouseUp="splitterMouseupEvent"  />
 
-
-
-        <Border x:Name="ContentView" BorderBrush="#404040" BorderThickness="1" Margin="555,2,229,2">
+        <Border x:Name="ContentView" BorderBrush="#404040" BorderThickness="1" Margin="0,2,229,2" HorizontalAlignment="Right" Width="1151">
             <Grid x:Name="content" >
                 <Grid.RowDefinitions>
                     <RowDefinition Height="348*"/>
@@ -90,7 +90,7 @@
                        Text="타이머" Height="16"
                        VerticalAlignment="Top"
                       
-                       Margin="12,143,41,0"  
+                       Margin="12,143,41,0" Foreground="#FFD8D8D8"  
                        
                         />
                 <TextBox x:Name="timerInput" 
@@ -103,7 +103,7 @@
                        Text="휴식 시간" Height="16"
                        VerticalAlignment="Top"
                       
-                       Margin="11,223,27,0" 
+                       Margin="11,223,27,0" Foreground="#FFD8D8D8" 
                        />
                 <TextBox x:Name="refreshTimerInput" 
                      TextWrapping="Wrap" 
@@ -111,14 +111,12 @@
                      VerticalAlignment="Top" 
                      Margin="11,244,0,0" HorizontalAlignment="Left" Width="172"
                      />
-                <CheckBox x:Name="Duplicated" Content="중복 허용" Height="27" Margin="0,301,93,0" VerticalAlignment="Top" Width="29" HorizontalAlignment="Right"/>
-                <CheckBox x:Name="random" Content="이미지 랜덤" Height="4" Margin="0,335,93,0" VerticalAlignment="Top" Width="73" HorizontalAlignment="Right"/>
 
-                <Button x:Name="start" Content="시작" Margin="6,0,6,28"  VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Height="40" PreviewMouseLeftButtonDown="start_MouseDown" />
+                <Button x:Name="start" Content="시작" Margin="6,0,6,28"  VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Height="40" PreviewMouseLeftButtonDown="start_MouseDown" Foreground="#FFD8D8D8" Background="#FF737373" />
                 <TextBlock x:Name="page" 
                     Height="16"
                     VerticalAlignment="Top"  
-                    Margin="11,61,27,0"><Run Text="출력 장수"/></TextBlock>
+                    Margin="11,61,27,0" Foreground="#FFD8D8D8"><Run Text="출력 장수"/></TextBlock>
                 <TextBox x:Name="page_input" 
                     TextWrapping="Wrap" Height="20"
                     Text="30" 
@@ -127,7 +125,6 @@
 
             </Grid>
         </Border>
-
 
 
 
