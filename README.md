@@ -1,18 +1,29 @@
+
+## 실행화면 
+![화면 캡처 2023-08-21 151514](https://github.com/kd0547/croquis/assets/86393702/422870fd-df0f-44a0-bfc9-3f4a18104688)
+
+
+</br>
+
 ## 개발환경 
 
 - .NET 7.0
 
-## 사양 
+</br>
+
+## 최소 사양 
 
 
->
->
+
+</br>
+
 ## Links
 - [download](https://github.com/kd0547/croquis/releases)
 
 
->
->
+</br>
+
+
 ## history
 
 [2023-08-20]
