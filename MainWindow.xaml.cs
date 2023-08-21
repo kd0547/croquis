@@ -407,7 +407,7 @@ namespace croquis
                     ImageTreeViewItem item = ImageTreeViewItem.createImageTreeViewItem(GetIcomImage(dir.FullName), dir.Name,dir.FullName);
 
                     item.Expanded += new RoutedEventHandler(TargetTreeViewItemExpanded);
-                    item.MouseDoubleClick += FileItemDoubleClickEvent;
+                    item.MouseDoubleClick    += FileItemDoubleClickEvent;
                     item.PreviewMouseRightButtonDown += CroquisRightClickEvent;
 
                     TargetGetFile(item);
