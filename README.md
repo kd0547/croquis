@@ -5,11 +5,14 @@
 ## 사양 
 
 
-
+>
+>
 ## Links
-- [download](https://github.com/kd0547/croquis/releases/tag/v0.5s)
+- [download](https://github.com/kd0547/croquis/releases)
 
 
+>
+>
 ## history
 
 [2023-08-20]
