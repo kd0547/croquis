@@ -29,7 +29,7 @@ public class ImageTreeViewItem : TreeViewItem
 	public Image image
 	{
 		get { return _Image; }
-		//set { _Image.Source = new BitmapImage(value); }
+	    set { _Image = value; }
 	}
 
 	public ImageSource imageSource
@@ -40,9 +40,126 @@ public class ImageTreeViewItem : TreeViewItem
 			_Image.Source = _ImageSource;
 		}
 	}
+    public ImageTreeViewItem(ImageTreeViewItemBuilder builder)
+    {
+        CreateTreeViewItemTemplate();
 
 
-	
+        imageSource = builder._ImageSource;
+        FullName = builder._FullName;
+        if(builder._Image != null) { image = builder._Image; }
+        if(builder._textBlock != null) { _textBlock = builder._textBlock; }
+        Text = builder._Text;
+
+        if(builder._Expanded != null) { this.Expanded += builder._Expanded; }
+        if(builder._PreviewMouseDoubleClick != null) { this.PreviewMouseDoubleClick += builder._PreviewMouseDoubleClick; }
+        if(builder._MouseDoubleClick != null) { this.MouseDoubleClick += builder._MouseDoubleClick; }
+        if(builder._PreviewMouseDown != null) { this.PreviewMouseDown += builder._PreviewMouseDown; }
+        if(builder._PreviewMouseLeftButtonDown != null) { this.PreviewMouseLeftButtonDown += builder._PreviewMouseLeftButtonDown; }
+        if( builder._PreviewMouseRightButtonDown != null) { this.PreviewMouseRightButtonDown += builder._PreviewMouseRightButtonDown; }
+        
+        
+
+        
+
+    }
+
+    public class ImageTreeViewItemBuilder
+	{
+        public Image _Image = null;
+        public ImageSource _ImageSource = null;
+        public TextBlock _textBlock = null;
+		public string _FullName = string.Empty;
+        public string _Text = string.Empty;
+
+		//이벤트 등록
+        public RoutedEventHandler _Expanded;
+        public MouseButtonEventHandler _PreviewMouseDoubleClick;
+        public MouseButtonEventHandler _MouseDoubleClick;
+        public MouseButtonEventHandler _PreviewMouseDown;
+        public MouseButtonEventHandler _PreviewMouseLeftButtonDown;
+        public MouseButtonEventHandler _PreviewMouseRightButtonDown;
+
+        public ImageTreeViewItemBuilder()
+        {
+
+
+            
+        }
+
+        public ImageTreeViewItemBuilder WithText(string Text)
+        {
+            _Text = Text;
+            return this;
+        }
+
+        public ImageTreeViewItemBuilder WithImage(Image image)
+        {
+            _Image = image;
+            return this;
+        }
+
+        public ImageTreeViewItemBuilder WithImageSource(ImageSource imageSource)
+        {
+            _ImageSource = imageSource;
+            return this;
+        }
+
+        public ImageTreeViewItemBuilder WithTextBlock(TextBlock textBlock)
+        {
+            _textBlock = textBlock;
+            return this;
+        }
+
+        public ImageTreeViewItemBuilder WithFullName(string fullName)
+        {
+            _FullName = fullName;
+            return this;
+        }
+
+        public ImageTreeViewItemBuilder WithExpandedEvent(RoutedEventHandler handler)
+        {
+            _Expanded = handler;
+            return this;
+        }
+
+        public ImageTreeViewItemBuilder WithPreviewMouseDoubleClickEvent(MouseButtonEventHandler handler)
+        {
+            _PreviewMouseDoubleClick = handler;
+            return this;
+        }
+
+        public ImageTreeViewItemBuilder WithMouseDoubleClickEvent(MouseButtonEventHandler handler)
+        {
+            _MouseDoubleClick = handler;
+            return this;
+        }
+
+        public ImageTreeViewItemBuilder WithPreviewMouseDownEvent(MouseButtonEventHandler handler)
+        {
+            _PreviewMouseDown = handler;
+            return this;
+        }
+
+        public ImageTreeViewItemBuilder WithPreviewMouseLeftButtonDownEvent(MouseButtonEventHandler handler)
+        {
+            _PreviewMouseLeftButtonDown = handler;
+            return this;
+        }
+
+        public ImageTreeViewItemBuilder WithPreviewMouseRightButtonDownEvent(MouseButtonEventHandler handler)
+        {
+            _PreviewMouseRightButtonDown = handler;
+            return this;
+        }
+
+        public ImageTreeViewItem build()
+		{
+			return new ImageTreeViewItem(this);
+		}
+
+    }
+    
 
     public ImageTreeViewItem()
 	{
@@ -81,11 +198,7 @@ public class ImageTreeViewItem : TreeViewItem
     }
 
 
-    private void copy(ref TreeViewItem source, ref TreeViewItem destination)
-    {
-        destination.Header = source.Header;
-
-    }
+    
 
     private void CreateTreeViewItemTemplate()
 	{

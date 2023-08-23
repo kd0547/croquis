@@ -1,8 +1,12 @@
-﻿using System;
+﻿using croquis;
+using Microsoft.VisualBasic;
+using NAudio.Wave;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Threading;
-
+using System.Threading.Tasks;
 
 public class CroquisPlay
 {
@@ -18,9 +22,9 @@ public class CroquisPlay
     
     public Sleep sleep { get; set; }
     public Show show { get; set; }
+    
+    
 
-    
-    
 
     private PlayStatus status = PlayStatus.Play;
     
@@ -32,7 +36,7 @@ public class CroquisPlay
     public CroquisPlay(Sleep sleep, Show show)
     {
         this.sleep = sleep;
-        this.show = show;
+        this.show = show; 
     }
 
     
@@ -48,16 +52,63 @@ public class CroquisPlay
         ThreadPool.QueueUserWorkItem(PrivateRun, o);
     }
 
+
+    public void DelayPlayer(int second)
+    {
+        
+        DateTime now = DateTime.Now;
+        TimeSpan duration = new TimeSpan(0, 0, second);
+        TimeSpan alramCount = new TimeSpan(0, 0, second - 3);
+
+        DateTime alramTime = now.Add(alramCount);
+        DateTime end = now.Add(duration);
+
+        while (end >= now)
+        {
+            now = DateTime.Now;
+            if (now.Equals(end))
+            {
+                ThreadPool.QueueUserWorkItem(playMusic);
+            }
+            if (status == PlayStatus.Stop)
+            {
+                return;
+            }
+        }
+        
+    }
+
+   
+    public async void playMusic(object? state)
+    {
+        byte[] fileByte = Resource1.Alarm;
+        Stream stream = new MemoryStream(fileByte);
+        NAudio.Wave.Mp3FileReader reader = new NAudio.Wave.Mp3FileReader(stream);
+        var waveOut = new WaveOut();
+        waveOut.Init(reader);
+        await Task.Factory.StartNew(() => {
+            
+            waveOut.Play(); 
+        });
+         
+
+
+    }
+
+
     public void delay(int second)
     {
         DateTime now = DateTime.Now;
-        TimeSpan duration = new TimeSpan(0, 0, 0, 0, second);
+        TimeSpan duration = new TimeSpan(0, 0, second);
+        DateTime end = now.Add(duration);
 
-        DateTime dateTimeAdd = now.Add(duration);
-
-        while(dateTimeAdd >= now)
+        while(end >= now)
         {
             now = DateTime.Now;
+            if (status == PlayStatus.Stop)
+            {
+                return;
+            }
         }
     }
 
@@ -79,7 +130,7 @@ public class CroquisPlay
     {
         Random random = new Random();
 
-        return random.Next(0,max);
+       return random.Next(0,max);
     }
 
     private void PrivateRun(object o)
@@ -106,7 +157,7 @@ public class CroquisPlay
             Debug.WriteLine(s);
             show(s);
             //sleep(Interval);
-            delay(Interval);
+            DelayPlayer(Interval);
             show(null);
             //sleep(RefreshInterval);
             delay(RefreshInterval);
