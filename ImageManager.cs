@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -94,21 +95,23 @@ public class ImageManager
 
 
     /// <summary>
-    /// 폴더에서 이미지를 가져오는 함수
+    /// 지정된 디렉토리에서 이미지 파일을 로드하여 ListBox에 미리보기 이미지를 표시합니다.
     /// </summary>
-    /// <param name="path"></param>
-    public void showImageFile(ListBox pictureBox,string path)
+    /// <param name="pictureBox">미리보기 이미지를 표시할 ListBox</param>
+    /// <param name="path">이미지 파일이 포함된 디렉토리 경로</param>
+    public void LoadAndDisplayPreviewImages(ListBox pictureBox,string path)
     {
         pictureBox.Items.Clear();
 
         DirectoryInfo directory = new DirectoryInfo(path);
-        int count = directory.GetFiles().Length;
+        int imageCount = directory.GetFiles().Count();
 
-        
-        int col = calculateCol((int)pictureBox.ActualWidth);
-        int row = (count / col) + 1;
-        
-        pictureBox.DataContext = new PictureBoxRowCols(row, col);
+        // ListBox 열 수 계산
+        int columns = CalculateColumns((int)pictureBox.ActualWidth);
+        int rows = (imageCount / columns) + 1;
+
+        // ListBox에 DataContext 설정
+        pictureBox.DataContext = new PictureBoxRowCols(rows, columns);
 
         foreach (FileInfo file in directory.GetFiles())
         {
@@ -117,24 +120,19 @@ public class ImageManager
             {
                 continue;
             }
-            //Debug.WriteLine(file.FullName);
-            System.Windows.Controls.Image img = new System.Windows.Controls.Image();
+            ImageSource imageSource = LoadImage(file.FullName);
+            BitmapImage bitmapImage = (BitmapImage) imageSource;
 
-            img.Width = ImageSize;
-            img.Height = ImageSize;
-
-            BitmapImage bitmapImage = TEST(file.FullName);
-
-            img.Source = bitmapImage;
-            img.Tag = file.FullName;
-
-            img.MouseLeftButtonDown += ImageClick;
-
+            ImageBlock imageBlock = new ImageBlock(bitmapImage, file.Name);
+            imageBlock._Image.Tag = file.FullName;
+            imageBlock._Image.MouseLeftButtonDown += ImageClick;
             
 
-            pictureBox.Items.Add(img);
+            pictureBox.Items.Add(imageBlock);
         }
     }
+
+    
 
     /// <summary>
     /// 
@@ -153,7 +151,8 @@ public class ImageManager
 
                     using (var MemoryStream = new System.IO.MemoryStream(reader.ReadBytes((int)stream.Length)))
                     {
-                        return ResizeImage(MemoryStream, 129, 129);
+                        return null;
+                        //return ResizeImage(MemoryStream, 129, 129);
                     }
 
                 }
@@ -166,11 +165,11 @@ public class ImageManager
     }
 
     /// <summary>
-    /// 
+    /// 파일 경로로부터 이미지를 로드하여 BitmapImage를 반환합니다.
     /// </summary>
-    /// <param name="ImagePath"></param>
-    /// <returns></returns>
-    public BitmapImage TEST(string ImagePath)
+    /// <param name="filePath">이미지 파일 경로</param>
+    /// <returns>로드된 이미지의 BitmapImage</returns>
+    public BitmapImage LoadImage(string ImagePath)
     {
         if (System.IO.File.Exists(ImagePath))
         {
@@ -194,6 +193,8 @@ public class ImageManager
                         bitmapImage.DecodePixelWidth = ImageSize;
                         bitmapImage.EndInit();
 
+                        
+
                         return bitmapImage;
                     }
 
@@ -206,6 +207,60 @@ public class ImageManager
         }
     }
 
+    /// <summary>
+    /// 지정된 이미지 파일을 비동기적으로 로드하고, 리사이징하여 BitmapImage로 반환합니다.
+    /// </summary>
+    /// <param name="fullName">이미지 파일의 전체 경로</param>
+    /// <returns>리사이즈된 이미지의 BitmapImage</returns>
+    public async Task<BitmapImage> LoadBitmapImageAsync(string fullName)
+    {
+        BitmapImage bitmapImage = new BitmapImage();
+
+        
+
+        using (var stream = await LoadImageStreamAsync(fullName))
+        {
+            MemoryStream resizeMemoryStream = ResizeImage(stream, 129, 129);
+            bitmapImage.BeginInit();
+            bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+            bitmapImage.StreamSource = resizeMemoryStream;
+
+            if (ImageFileRotateCheck(stream))
+            {
+                bitmapImage.Rotation = Rotation.Rotate90;
+            }
+
+            bitmapImage.DecodePixelWidth = ImageSize;
+            resizeMemoryStream.Seek(0, SeekOrigin.Begin);
+            bitmapImage.EndInit();
+        }
+
+        
+
+        return bitmapImage;
+    }
+
+    /// <summary>
+    /// 이미지 파일을 비동기적으로 읽어서 MemoryStream 형태로 반환합니다.
+    /// </summary>
+    /// <param name="ImagePath">이미지 파일 경로</param>
+    /// <returns>이미지 파일의 MemoryStream</returns>
+    public async Task<MemoryStream> LoadImageStreamAsync(string ImagePath)
+    {
+        return await Task<MemoryStream>.Run(() => {
+
+            using (FileStream stream = new FileStream(ImagePath, FileMode.Open, FileAccess.Read))
+            {
+                using (BinaryReader reader = new BinaryReader(stream))
+                {
+                    var memoryStream = new MemoryStream(reader.ReadBytes((int)stream.Length));
+                    return memoryStream;
+                }
+            }
+            
+
+        });
+    }
 
 
     /// <summary>
@@ -215,7 +270,7 @@ public class ImageManager
     /// <param name="maxWidth"></param>
     /// <param name="maxHeight"></param>
     /// <returns></returns>
-    public BitmapImage ResizeImage(MemoryStream sourceStream, int maxWidth, int maxHeight)
+    public MemoryStream ResizeImage(MemoryStream sourceStream, int maxWidth, int maxHeight)
     {
         using (System.Drawing.Image image = System.Drawing.Image.FromStream(sourceStream))
         {
@@ -236,27 +291,11 @@ public class ImageManager
             using (System.Drawing.Image resizedImage = new Bitmap(image, newWidth, newHeight))
             {
                 // 리사이즈된 이미지를 MemoryStream에 저장
-                using (MemoryStream resizedStream = new MemoryStream())
-                {
-                    resizedImage.Save(resizedStream, System.Drawing.Imaging.ImageFormat.Jpeg); // 이미지 형식에 맞게 변경
-                    resizedStream.Seek(0, SeekOrigin.Begin);
+                MemoryStream resizedStream = new MemoryStream();
+                resizedImage.Save(resizedStream, System.Drawing.Imaging.ImageFormat.Jpeg); // 이미지 형식에 맞게 변경
+                resizedStream.Seek(0, SeekOrigin.Begin);
 
-                    // BitmapImage로 변환
-                    BitmapImage resizedBitmapImage = new BitmapImage();
-                    resizedBitmapImage.BeginInit();
-                    if (ImageFileRotateCheck(sourceStream))
-                    {
-                        resizedBitmapImage.Rotation = Rotation.Rotate90;
-                    }
-                    resizedStream.Seek(0, SeekOrigin.Begin);
-
-
-                    resizedBitmapImage.StreamSource = resizedStream;
-                    resizedBitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-                    resizedBitmapImage.EndInit();
-
-                    return resizedBitmapImage;
-                }
+                return resizedStream;
             }
         }
     }
@@ -278,11 +317,11 @@ public class ImageManager
 
 
     /// <summary>
-    /// 이미지 확장자 체크
+    /// 주어진 파일 경로의 확장자가 이미지 파일인지 확인합니다.
     /// </summary>
-    /// <param name="path"></param>
-    /// <returns></returns>
-    private bool IsImageExtension(string path)
+    /// <param name="path">확인할 파일 경로</param>
+    /// <returns>이미지 파일이면 true, 아니면 false</returns>
+    public bool IsImageExtension(string path)
     {
         string extension = Path.GetExtension(path);
         string _extension = extension.ToLower();
@@ -302,11 +341,11 @@ public class ImageManager
 
 
     /// <summary>
-    /// PreView의 width크기를 가져와 
+    /// ListBox의 열 수를 계산합니다.
     /// </summary>
-    /// <param name="width"></param>
-    /// <returns></returns>
-    private int calculateCol(int width)
+    /// <param name="listBoxWidth">ListBox의 너비</param>
+    /// <returns>계산된 열 수</returns>
+    public int CalculateColumns(int width)
     {
         return (int)width / ImageSize;
     }

@@ -9,7 +9,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 
 using System.Threading;
-
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -18,6 +18,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
 using System.Windows.Threading;
+
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Tab;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.TextBox;
 
@@ -125,8 +126,8 @@ namespace croquis
         {
             _itemFactory = new ImageTreeViewItemFactory.FactoryBuilder()
                 .SetExpanded(new RoutedEventHandler(itemExpanded))
-                .SetPreviewMouseDoubleClick(FileItemDoubleClickEvent)
-                .SetMouseDoubleClick(FileItemDoubleClickEvent)
+                .SetPreviewMouseDoubleClick(LoadAndDisplayPreviewImagesOnFileItemDoubleClick)
+                .SetMouseDoubleClick(LoadAndDisplayPreviewImagesOnFileItemDoubleClick)
                 .SetPreviewMouseDown(PreViewMouseLeftButtonDownEvent)
 
                 .SetPreviewMouseLeftButtonDown(ImageClickEvent)
@@ -271,7 +272,7 @@ namespace croquis
             try
             {
                 if (PictureViewer.Items.Count == 0) return;
-                foreach (Image item in PictureViewer.Items)
+                foreach (System.Windows.Controls.Image item in PictureViewer.Items)
                 {
                     if (item.Tag.ToString().Equals(DeletePath))
                     {
@@ -339,7 +340,7 @@ namespace croquis
                     string TreeTagPathFileName = Path.GetFileName(NewPath);
                     ImageTreeViewItem item = ImageTreeViewItem.createImageTreeViewItem(GetIcomImage(NewPath), TreeTagPathFileName, NewPath);
                     item.Expanded += new RoutedEventHandler(itemExpanded);
-                    item.PreviewMouseDoubleClick += FileItemDoubleClickEvent;
+                    item.PreviewMouseDoubleClick += LoadAndDisplayPreviewImagesOnFileItemDoubleClick;
                     item.PreviewMouseDown += PreViewMouseLeftButtonDownEvent;
                     //item.MouseEnter += SourceTreeViewEntryMouseEvent;
 
@@ -415,7 +416,7 @@ namespace croquis
             ImageTreeViewItem item = ImageTreeViewItem.createImageTreeViewItem(obj); 
             
             item.Expanded += new RoutedEventHandler(TargetTreeViewItemExpanded);
-            item.MouseDoubleClick += FileItemDoubleClickEvent;
+            item.MouseDoubleClick += LoadAndDisplayPreviewImagesOnFileItemDoubleClick;
             item.PreviewMouseRightButtonDown += CroquisRightClickEvent;
          
             _directoryManager.TargetGetDirectories(item);
@@ -528,14 +529,15 @@ namespace croquis
         #endregion
 
         #region 이미지 이벤트
-        
+
         /// <summary>
-        /// 미리보기 이미지를 출력하는 이벤트
+        /// 파일 항목을 더블 클릭했을 때 발생하는 이벤트 핸들러입니다.
         /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void FileItemDoubleClickEvent(object sender, MouseButtonEventArgs e)
+        /// <param name="sender">이벤트 소스</param>
+        /// <param name="e">마우스 버튼 이벤트 인자</param>
+        private void LoadPreviewImagesOnFileItemDoubleClick(object sender, MouseButtonEventArgs e)
         {
+            // 오른쪽 마우스 버튼 클릭 시 처리하지 않음
             if (e.RightButton == MouseButtonState.Pressed)
             {
                 return;
@@ -544,28 +546,150 @@ namespace croquis
             try
             {
                 ImageTreeViewItem clickItem = sender as ImageTreeViewItem;
-                
+
+                // 디렉토리 정보 가져오기
                 DirectoryInfo directory = new DirectoryInfo(clickItem.Tag as string);
                 FileInfo[] fileInfos = directory.GetFiles();
 
-
+                // 파일이 존재하면 미리보기 이미지 로드 및 표시
                 if (fileInfos.Length != 0)
                 {
-                    _imageManager.showImageFile(PictureViewer,clickItem.Tag.ToString());
+                    _imageManager.LoadAndDisplayPreviewImages(PictureViewer,clickItem.Tag.ToString());
                 }
                 e.Handled = true;
 
             }
             catch (Exception exception)
             {
-                MessageBox.Show(exception.Message);
+                System.Windows.MessageBox.Show(exception.Message);
             }
 
          }
 
+        #region 파일 미리보기 이벤트 
+        /// <summary>
+        /// 파일 항목을 더블 클릭했을 때 발생하는 이벤트 핸들러입니다.
+        /// </summary>
+        /// <param name="sender">이벤트 소스</param>
+        /// <param name="e">마우스 버튼 이벤트 인자</param>
+        private void LoadAndDisplayPreviewImagesOnFileItemDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            // 오른쪽 마우스 버튼 클릭 시 처리하지 않음
+            if (e.RightButton == MouseButtonState.Pressed)
+            {
+                return;
+            }
+
+            try
+            {
+                //아이템 초기화
+                PictureViewer.Items.Clear();
+
+                ImageTreeViewItem clickItem = sender as ImageTreeViewItem;
+
+                // 디렉토리 정보 가져오기
+                DirectoryInfo directory = new DirectoryInfo(clickItem.Tag as string);
+                FileInfo[] fileInfos = directory.GetFiles();
+
+                if (fileInfos.Length == 0)
+                    return;
 
 
+                int imageCount = fileInfos.Length;
 
+                // ListBox 열 수 계산
+                int columns = _imageManager.CalculateColumns((int)PictureViewer.ActualWidth);
+                int rows = (imageCount / columns) + 1;
+
+                // ListBox에 DataContext 설정
+                PictureViewer.DataContext = new PictureBoxRowCols(rows, columns);
+
+                // 파일이 존재하면 미리보기 이미지 로드 및 표시
+                if (fileInfos.Length != 0)
+                {
+                    ShowPreviewImages(fileInfos);
+                }
+                    
+                e.Handled = true;
+
+            }
+            catch (Exception exception)
+            {
+                System.Windows.MessageBox.Show(exception.Message);
+            }
+
+        }
+
+        /// <summary>
+        /// 이미지 미리보기를 표시하는 메서드 
+        /// </summary>
+        /// <param name="fileInfos">파일 정보 배열</param>
+        private async void ShowPreviewImages(FileInfo[] fileInfos)
+        {
+            await Task.Run(async () =>
+            {
+                foreach (FileInfo file in fileInfos)
+                {
+                    if (!_imageManager.IsImageExtension(file.FullName))
+                    {
+                        continue;
+                    }
+                    // UI 스레드로 디스패치하여 UI 요소 생성 및 초기화
+                    Dispatcher.Invoke(() =>
+                    {
+                        //UI 요소의 생성: 'UI 요소'는 일반적으로 UI 스레드에서만 생성할 수 있습니다.UI 스레드 이외의 스레드에서 UI 요소를 생성하려고 시도하면 'System.InvalidOperationException' 예외가 발생합니다.
+                        ImageBlock imageBlock = new ImageBlock(file.Name);
+                        imageBlock._Image.Tag = file.FullName;
+                        imageBlock._Image.MouseLeftButtonDown += ImageClickEvent;
+
+                        PictureViewer.Items.Add(imageBlock);
+                    },DispatcherPriority.Normal);
+
+                    DisplayImageOnUIThread(file.FullName);
+                }
+            });
+
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="fullName"></param>
+        private void DisplayImageOnUIThread(string fullName)
+        {
+            Dispatcher.Invoke(async() =>
+            {
+                BitmapImage bitmapImage = await _imageManager.LoadBitmapImageAsync(fullName);
+
+                ImageBlock FindBlock = FindImageBlockByTag(PictureViewer, fullName);
+                {
+                    if (FindBlock != null)
+                    {
+                        FindBlock._Image.Source = bitmapImage;
+                    }
+                }
+            }, DispatcherPriority.Normal);
+
+        }
+
+        /// <summary>
+        /// PictureViewer 내에서 특정 태그를 가진 ImageBlock을 찾는 보조 메서드
+        /// </summary>
+        /// <param name="pictureBox"></param>
+        /// <param name="tag"></param>
+        /// <returns></returns>
+        private ImageBlock FindImageBlockByTag(ListBox pictureBox, string tag)
+        {
+            foreach (var item in pictureBox.Items)
+            {
+                if (item is ImageBlock imageBlock && imageBlock._Image.Tag as string == tag)
+                {
+                    return imageBlock;
+                }
+            }
+            return null;
+        }
+        #endregion
 
         /// <summary>
         /// 이미지 확장자 체크
@@ -601,7 +725,7 @@ namespace croquis
         {
             Uri url = null;
             string path = null;
-            if (sender is Image)
+            if (sender is System.Windows.Controls.Image)
             {
                 Image send = sender as Image;
                 url = new Uri(send.Tag.ToString());

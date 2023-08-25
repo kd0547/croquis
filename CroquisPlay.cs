@@ -154,12 +154,9 @@ public class CroquisPlay
             }
             string s= path[randomRun(path.Count)];
 
-            Debug.WriteLine(s);
             show(s);
-            //sleep(Interval);
             DelayPlayer(Interval);
             show(null);
-            //sleep(RefreshInterval);
             delay(RefreshInterval);
             
         }

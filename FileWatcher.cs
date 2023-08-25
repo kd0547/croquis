@@ -126,7 +126,7 @@ public class FileWatcher
                 string TreeTagPathFileName = Path.GetFileName(NewPath);
                 //ImageTreeViewItem item = ImageTreeViewItem.createImageTreeViewItem(GetIcomImage(NewPath), TreeTagPathFileName, NewPath);
                 //item.Expanded += new RoutedEventHandler(itemExpanded);
-                //item.PreviewMouseDoubleClick += FileItemDoubleClickEvent;
+                //item.PreviewMouseDoubleClick += LoadPreviewImagesOnFileItemDoubleClick;
                 //item.PreviewMouseDown += PreViewMouseLeftButtonDownEvent;
                 //item.MouseEnter += SourceTreeViewEntryMouseEvent;
 
