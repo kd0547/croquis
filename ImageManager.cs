@@ -70,7 +70,7 @@ public class ImageManager
 
     
 
-    private bool ImageFileRotateCheck(MemoryStream memoryStream)
+    public bool ImageFileRotateCheck(MemoryStream memoryStream)
     {
         using (System.Drawing.Image img = System.Drawing.Image.FromStream(memoryStream))
         {
@@ -208,39 +208,6 @@ public class ImageManager
     }
 
     /// <summary>
-    /// 지정된 이미지 파일을 비동기적으로 로드하고, 리사이징하여 BitmapImage로 반환합니다.
-    /// </summary>
-    /// <param name="fullName">이미지 파일의 전체 경로</param>
-    /// <returns>리사이즈된 이미지의 BitmapImage</returns>
-    public async Task<BitmapImage> LoadBitmapImageAsync(string fullName)
-    {
-        BitmapImage bitmapImage = new BitmapImage();
-
-        
-
-        using (var stream = await LoadImageStreamAsync(fullName))
-        {
-            MemoryStream resizeMemoryStream = ResizeImage(stream, 129, 129);
-            bitmapImage.BeginInit();
-            bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-            bitmapImage.StreamSource = resizeMemoryStream;
-
-            if (ImageFileRotateCheck(stream))
-            {
-                bitmapImage.Rotation = Rotation.Rotate90;
-            }
-
-            bitmapImage.DecodePixelWidth = ImageSize;
-            resizeMemoryStream.Seek(0, SeekOrigin.Begin);
-            bitmapImage.EndInit();
-        }
-
-        
-
-        return bitmapImage;
-    }
-
-    /// <summary>
     /// 이미지 파일을 비동기적으로 읽어서 MemoryStream 형태로 반환합니다.
     /// </summary>
     /// <param name="ImagePath">이미지 파일 경로</param>
@@ -257,10 +224,69 @@ public class ImageManager
                     return memoryStream;
                 }
             }
-            
+
 
         });
     }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="sourceStream"></param>
+    /// <param name="maxWidth"></param>
+    /// <param name="maxHeight"></param>
+    /// <returns></returns>
+    public async Task<MemoryStream> ResizeImageAsync(MemoryStream sourceStream, int maxWidth, int maxHeight)
+    {
+        return await Task<MemoryStream>.Run(() =>
+        {
+            using (System.Drawing.Image image = System.Drawing.Image.FromStream(sourceStream))
+            {
+                // 이미지 크기를 조절
+                int newWidth, newHeight;
+
+                if (image.Width > image.Height)
+                {
+                    newWidth = maxWidth;
+                    newHeight = (int)((double)image.Height / image.Width * maxWidth);
+                }
+                else
+                {
+                    newHeight = maxHeight;
+                    newWidth = (int)((double)image.Width / image.Height * maxHeight);
+                }
+
+                using (System.Drawing.Image resizedImage = new Bitmap(image, newWidth, newHeight))
+                {
+                    // 리사이즈된 이미지를 MemoryStream에 저장
+                    MemoryStream resizedStream = new MemoryStream();
+                    resizedImage.Save(resizedStream, System.Drawing.Imaging.ImageFormat.Jpeg); // 이미지 형식에 맞게 변경
+                    resizedStream.Seek(0, SeekOrigin.Begin);
+
+                    return resizedStream;
+                }
+            }
+        });
+    }
+
+    /// <summary>
+    /// 지정된 이미지 파일을 비동기적으로 로드하고, 리사이징하여 BitmapImage로 반환합니다.
+    /// </summary>
+    /// <param name="fullName">이미지 파일의 전체 경로</param>
+    /// <returns>리사이즈된 이미지의 BitmapImage</returns>
+    public async Task<MemoryStream> LoadResizeImageStreamAsync(MemoryStream originMemoryStream)
+    {
+        return await Task<MemoryStream>.Run(() =>
+        {
+            using (MemoryStream resizeMemoryStream = ResizeImage(originMemoryStream, 129, 129))
+            {
+                return resizeMemoryStream;
+            }
+        });
+        
+    }
+    
+
 
 
     /// <summary>
@@ -303,7 +329,11 @@ public class ImageManager
 
  
 
-
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="ImagePath"></param>
+    /// <returns></returns>
     private BitmapImage createImage(string ImagePath)
     {
         BitmapImage bitmapImage = new BitmapImage();

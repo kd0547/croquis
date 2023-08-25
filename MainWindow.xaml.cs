@@ -626,8 +626,9 @@ namespace croquis
         /// <param name="fileInfos">파일 정보 배열</param>
         private async void ShowPreviewImages(FileInfo[] fileInfos)
         {
-            await Task.Run(async () =>
+            await Task.Run(() =>
             {
+                // 파일 이름 먼저
                 foreach (FileInfo file in fileInfos)
                 {
                     if (!_imageManager.IsImageExtension(file.FullName))
@@ -645,32 +646,64 @@ namespace croquis
                         PictureViewer.Items.Add(imageBlock);
                     },DispatcherPriority.Normal);
 
+                    
+                }
+
+                foreach (FileInfo file in fileInfos)
+                {
+                    if (!_imageManager.IsImageExtension(file.FullName))
+                    {
+                        continue;
+                    }
                     DisplayImageOnUIThread(file.FullName);
                 }
+
             });
 
         }
 
         /// <summary>
-        /// 
+        ///  지정된 이미지 파일을 UI 스레드에서 로드하여 미리보기 컨트롤에 표시합니다.
         /// </summary>
         /// <param name="fullName"></param>
-        private void DisplayImageOnUIThread(string fullName)
+        private async void DisplayImageOnUIThread(string fullName)
         {
-            Dispatcher.Invoke(async() =>
+            using(MemoryStream memoryStream = await _imageManager.LoadImageStreamAsync(fullName))
             {
-                BitmapImage bitmapImage = await _imageManager.LoadBitmapImageAsync(fullName);
+                bool rotateCheck = _imageManager.ImageFileRotateCheck(memoryStream);
 
-                ImageBlock FindBlock = FindImageBlockByTag(PictureViewer, fullName);
+                using (MemoryStream ResizeMemoryStream = await _imageManager.ResizeImageAsync(memoryStream, 129, 129))
                 {
-                    if (FindBlock != null)
+                    ResizeMemoryStream.Seek(0, SeekOrigin.Begin);
+                    await Dispatcher.InvokeAsync(async () =>
                     {
-                        FindBlock._Image.Source = bitmapImage;
-                    }
-                }
-            }, DispatcherPriority.Normal);
+                        BitmapImage bitmapImage = new BitmapImage();
+                        bitmapImage.BeginInit();
 
+                        if (rotateCheck) 
+                        {
+                            bitmapImage.Rotation = Rotation.Rotate90;
+                        }
+                        bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+
+                        bitmapImage.StreamSource = ResizeMemoryStream;
+                        bitmapImage.EndInit();
+
+                        ImageBlock FindBlock = FindImageBlockByTag(PictureViewer, fullName);
+                        {
+                            if (FindBlock != null)
+                            {
+                                FindBlock._Image.Source = bitmapImage;
+                            }
+                        }
+
+
+                    }, DispatcherPriority.Normal);
+                }
+            }
         }
+
+      
 
         /// <summary>
         /// PictureViewer 내에서 특정 태그를 가진 ImageBlock을 찾는 보조 메서드
