@@ -107,7 +107,7 @@
                        />
                 <TextBox x:Name="refreshTimerInput" 
                      TextWrapping="Wrap" 
-                     Text="3" Height="32"
+                     Text="3" Height="20"
                      VerticalAlignment="Top" 
                      Margin="11,244,0,0" HorizontalAlignment="Left" Width="172"
                      />
@@ -117,11 +117,16 @@
                     Height="16"
                     VerticalAlignment="Top"  
                     Margin="11,61,27,0" Foreground="#FFD8D8D8"><Run Text="출력 장수"/></TextBlock>
+
                 <TextBox x:Name="page_input" 
                     TextWrapping="Wrap" Height="20"
                     Text="30" 
                     VerticalAlignment="Top" 
                     Margin="0,82,40,0" HorizontalAlignment="Right" Width="172" />
+
+
+                <CheckBox x:Name="fullDisplay" IsChecked="False" Content="전체화면" VerticalAlignment="Top" 
+                    Margin="0,295,91,0" HorizontalAlignment="Right" Width="70"></CheckBox>
 
             </Grid>
         </Border>

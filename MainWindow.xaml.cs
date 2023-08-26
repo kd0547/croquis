@@ -79,11 +79,12 @@ namespace croquis
             ContentMinSize = ContentView.Width;
 
             croquisTreeView.Drop += CroquisTreeDropEvent;
+            fullDisplay.Click += FullDisplay;
             Run();
         }
         #region 테스트 중 로컬드라이브에서 파일 또는 디렉토리가 변경되면 감지해 파일 탐색기에 반영된다.
+        #endregion
 
-        
         #region 초기화
         /// <summary>
         /// Drag & Drop 설정
@@ -361,9 +362,6 @@ namespace croquis
 
 
 
-
-        #endregion
-
         
 
         #region 
@@ -482,8 +480,42 @@ namespace croquis
 
         #endregion
 
+
+
+        #region 전체화면 이벤트
+
+        /// <summary>
+        /// 
+        /// </summary>
+        private void FullDisplay(object sender, EventArgs e)
+        {
+            if(fullDisplay.IsChecked  == true)
+            {
+                MainWin.WindowState = WindowState.Maximized;
+            }
+        }
+
+
+
+        #endregion
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         #region 디렉토리 확장 이벤트
-        
+
 
 
         /// <summary>
@@ -530,6 +562,8 @@ namespace croquis
 
         #region 이미지 이벤트
 
+
+        #endregion
         /// <summary>
         /// 파일 항목을 더블 클릭했을 때 발생하는 이벤트 핸들러입니다.
         /// </summary>
@@ -565,6 +599,8 @@ namespace croquis
             }
 
          }
+
+
 
         #region 파일 미리보기 이벤트 
         /// <summary>
@@ -646,17 +682,19 @@ namespace croquis
                         PictureViewer.Items.Add(imageBlock);
                     },DispatcherPriority.Normal);
 
-                    
+                    DisplayImageOnUIThread(file.FullName);
+
+
                 }
 
-                foreach (FileInfo file in fileInfos)
-                {
-                    if (!_imageManager.IsImageExtension(file.FullName))
-                    {
-                        continue;
-                    }
-                    DisplayImageOnUIThread(file.FullName);
-                }
+                //foreach (FileInfo file in fileInfos)
+                //{
+                //    if (!_imageManager.IsImageExtension(file.FullName))
+                //    {
+                //        continue;
+                //    }
+                //    DisplayImageOnUIThread(file.FullName);
+                //}
 
             });
 
@@ -668,13 +706,24 @@ namespace croquis
         /// <param name="fullName"></param>
         private async void DisplayImageOnUIThread(string fullName)
         {
-            using(MemoryStream memoryStream = await _imageManager.LoadImageStreamAsync(fullName))
+            // 이미지 파일을 읽어와 MemoryStream에 저장합니다.
+            using (MemoryStream memoryStream = _imageManager.LoadImageStream(fullName))
             {
+                // 이미지 회전 여부를 확인합니다.
                 bool rotateCheck = _imageManager.ImageFileRotateCheck(memoryStream);
 
-                using (MemoryStream ResizeMemoryStream = await _imageManager.ResizeImageAsync(memoryStream, 129, 129))
+                // 이미지를 지정된 크기로 리사이징한 후 MemoryStream에 저장합니다.
+                using (MemoryStream ResizeMemoryStream = _imageManager.ResizeImage(memoryStream, 129, 129))
                 {
+                    // 이미지 리사이징에 실패한 경우 처리를 중단합니다.
+                    if (ResizeMemoryStream == null)
+                    {
+                        return;
+                    }
+                    // MemoryStream의 위치를 처음으로 되돌립니다.
                     ResizeMemoryStream.Seek(0, SeekOrigin.Begin);
+
+                    // UI 스레드로 비동기적으로 이미지를 표시합니다.
                     await Dispatcher.InvokeAsync(async () =>
                     {
                         BitmapImage bitmapImage = new BitmapImage();
@@ -682,13 +731,15 @@ namespace croquis
 
                         if (rotateCheck) 
                         {
+                            // 이미지가 회전되었다면 비트맵 이미지의 회전 속성을 설정합니다.
                             bitmapImage.Rotation = Rotation.Rotate90;
                         }
+                        // 이미지를 캐시로 로드하고 스트림을 지정합니다.
                         bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-
                         bitmapImage.StreamSource = ResizeMemoryStream;
                         bitmapImage.EndInit();
 
+                        // 이미지를 찾아서 미리보기 컨트롤에 표시합니다.
                         ImageBlock FindBlock = FindImageBlockByTag(PictureViewer, fullName);
                         {
                             if (FindBlock != null)
@@ -722,6 +773,13 @@ namespace croquis
             }
             return null;
         }
+
+
+
+
+
+
+
         #endregion
 
         /// <summary>
@@ -745,15 +803,13 @@ namespace croquis
             return false;
         }
 
-     
-
-
+        #region 원본 이미지를 보는 이벤트 
 
         /// <summary>
-        /// 이미지 미리보기에서 이미지를 클릭하면 원본 이미지를 확인할 수 있다. 
+        /// 이미지 미리보기에서 이미지를 클릭하면 원본 이미지를 확인할 수 있는 이벤트 핸들러입니다.
         /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
+        /// <param name="sender">이벤트를 발생시킨 UI 요소</param>
+        /// <param name="e">마우스 이벤트 인자</param>
         private void ImageClickEvent(object sender, MouseEventArgs e)
         {
             Uri url = null;
@@ -776,14 +832,28 @@ namespace croquis
             BitmapImage bitmapImage = _imageManager.LoadOriginalImage(path);
 
             //Debug.WriteLine( bitmapImage.Metadata);
-            
+
 
             mainContent.Source = bitmapImage;
         }
 
         #endregion
 
+
+
         #region 윈도우 Control 사이즈 변경 
+        /// <summary>
+        /// 
+        /// </summary>
+        Point mouseDown;
+        private void splitterMouseDownEvent(object sender, MouseEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                mouseDown = e.GetPosition(this);
+            }
+        }
+
         /// <summary>
         /// 
         /// </summary>
@@ -842,20 +912,8 @@ namespace croquis
                 ContentView.Width = ContenViewtSize.plusWidth(tempsize.width - 2);
             }
         }
-        #endregion
 
-        #region
-        /// <summary>
-        /// 
-        /// </summary>
-        Point mouseDown;
-        private void splitterMouseDownEvent(object sender ,MouseEventArgs e)
-        {
-            if(e.LeftButton == MouseButtonState.Pressed)
-            {
-                mouseDown = e.GetPosition(this);
-            }
-        }
+
         /// <summary>
         /// 
         /// </summary>
@@ -869,7 +927,10 @@ namespace croquis
             PictureViewer.DataContext = new PictureBoxRowCols(row, col);
         }
 
-        #endregion  
+
+        #endregion
+
+
 
         #region 크로키 시작 
         /// <summary>
