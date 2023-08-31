@@ -1,15 +1,12 @@
 ﻿namespace initializationControl
 {
-    public class window
-    {
-
-    }
+ 
 
 
     public class ControlSize
     {
-        public double width { get; init; }
-        public double height { get; init; }
+        public double width { get; set; }
+        public double height { get; set; }
 
     }
 

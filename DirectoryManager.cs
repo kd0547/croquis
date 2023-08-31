@@ -10,12 +10,13 @@ using System.Windows.Controls;
 public class DirectoryManager
 {
     private ImageTreeViewItemFactory imageTreeViewItemFactory;
+    private Log log;
 
 
-
-    public DirectoryManager(ImageTreeViewItemFactory imageTreeViewItemFactory)
+    public DirectoryManager(ImageTreeViewItemFactory imageTreeViewItemFactory, Log log)
     {
         this.imageTreeViewItemFactory = imageTreeViewItemFactory;
+        this.log = log;
     }
 
     #region 파일탐색기 코드 
@@ -37,11 +38,11 @@ public class DirectoryManager
             }
             catch (UnauthorizedAccessException uaae)
             {
-
+                log.LogWrite(uaae.Message);
             }
             catch (IOException ioe)
             {
-
+                log.LogWrite(ioe.Message);
             }
         }
     }
@@ -116,10 +117,6 @@ public class DirectoryManager
             {
                 //빌터패턴으로 다시 구현하기 
                 ImageTreeViewItem item = imageTreeViewItemFactory.CreateTargetGetDirectories(GetIcomImage(dir.FullName), dir.Name, dir.FullName);
-
-
-
-
 
                 TargetGetFile(item);
                 parent.Items.Add(item);

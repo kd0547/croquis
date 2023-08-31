@@ -32,6 +32,8 @@ namespace croquis
 
     public partial class MainWindow : Window
     {
+        private Log log;
+
         private ImageTreeViewItemFactory _itemFactory;
         private DirectoryManager _directoryManager;
         private ImageManager _imageManager;
@@ -50,24 +52,40 @@ namespace croquis
 
         private static int ImageSize = 129;
 
-         private double PreGridMinSize = 328;
+         private double PreGridMinSize ;
 
         //파일 시스템 감지 
-        private FileSystemWatcher watcher;
+        private List<FileSystemWatcher> _watchers;
 
         public MainWindow()
         {
+            log = new Log();
+
+
             InitializeComponent();
             SetAllowDrop();
             InitImageTreeViewFactory();
             InitImageManager();
-
-            PreViewGrid.Width = PreGridMinSize;
-            
-
+            InitControlSize();
 
 
             croquisPlay = new CroquisPlay(ThreadSleep, showImage);
+            croquisTreeView.Drop += CroquisTreeDropEvent;
+            //fullDisplay.Click += FullDisplay;
+
+            MainWin.PreviewKeyDown += EndFullDisplayButton;
+            MainGrid.KeyDown += EndFullDisplayButton;
+            Run();
+        }
+
+        /// <summary>
+        /// 여러 컨트롤의 초기 크기를 설정하고 관련 정보를 저장하는 메서드입니다.
+        /// </summary>
+        private void InitControlSize()
+        {
+            
+
+
             MainFormSize = new ControlResize(MainWin.Width, MainWin.Height);
             FileGridSize = new ControlResize(FileGrid.Width, FileGrid.Height);
             PreViewSize = new ControlResize(PreViewGrid.Width, PreViewGrid.Height);
@@ -76,12 +94,13 @@ namespace croquis
 
             //컨텐츠 테스트
             ViewMinSIze = view.Width;
-            ContentMinSize = ContentView.Width;
 
-            croquisTreeView.Drop += CroquisTreeDropEvent;
-            fullDisplay.Click += FullDisplay;
-            Run();
+
+            PreViewGrid.Width = view.Width;
+            ContentMinSize = ContentView.Width;
         }
+
+
         #region 테스트 중 로컬드라이브에서 파일 또는 디렉토리가 변경되면 감지해 파일 탐색기에 반영된다.
         #endregion
 
@@ -102,10 +121,12 @@ namespace croquis
         /// <param name="e"></param>
         private void WindowLoadEvent(object sender, RoutedEventArgs e)
         {
+            
             //디렉토리 가져오기 
             _directoryManager.GetLocalDrives(DirectoryView);
 
-
+            //
+            MainWin.SizeChanged += new System.Windows.SizeChangedEventHandler(this.WinFormResizeEvent);
         }
 
         /// <summary>
@@ -136,40 +157,72 @@ namespace croquis
                 .Build();
 
 
-            _directoryManager = new DirectoryManager(_itemFactory);
+            _directoryManager = new DirectoryManager(_itemFactory, log);
 
 
         }
         #endregion
 
-
+        
         private void Run()
         {
+            try
+            {
+                string osDrive = Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.System));
+                Debug.WriteLine(osDrive);
+                string[] drivers = Directory.GetLogicalDrives();
+                _watchers = new List<FileSystemWatcher>();
 
+                foreach (string driver in drivers)
+                {
+                    if(driver.Equals(osDrive))
+                    {
+                        continue;
+                    }
 
-            watcher = new FileSystemWatcher(@"G:\");
-            watcher.Filter = "*.*";
+                    FileSystemWatcher watcher = new FileSystemWatcher(driver);
+                    watcher.Filter = "*.*";
 
-            watcher.EnableRaisingEvents = true;
-            //하위 디렉토리의 변화까지 감지
-            watcher.IncludeSubdirectories = true;
+                    watcher.EnableRaisingEvents = true;
+                    //하위 디렉토리의 변화까지 감지
+                    watcher.IncludeSubdirectories = true;
 
-            //테스트 
-            
-            watcher.NotifyFilter = NotifyFilters.Attributes    //속성 변경
-                                | NotifyFilters.CreationTime   //생성시간
-                                | NotifyFilters.DirectoryName  //디렉토리 이름
-                                | NotifyFilters.FileName       //파일 이름
-                                | NotifyFilters.LastAccess     //마지막 접근
-                                | NotifyFilters.LastWrite      //마지막 쓰여진
-                                | NotifyFilters.Security       //보안
-                                | NotifyFilters.Size;          //크기
+                    
 
-            watcher.Changed += watcher_Change;
-            watcher.Deleted += watcher_Delete;
-            watcher.Created += watcher_Create;
-            watcher.Renamed += watcher_Rename;
+                    watcher.NotifyFilter = NotifyFilters.Attributes    //속성 변경
+                                        | NotifyFilters.CreationTime   //생성시간
+                                        | NotifyFilters.DirectoryName  //디렉토리 이름
+                                        | NotifyFilters.FileName       //파일 이름
+                                        | NotifyFilters.LastAccess     //마지막 접근
+                                        | NotifyFilters.LastWrite      //마지막 쓰여진
+                                        | NotifyFilters.Security       //보안
+                                        | NotifyFilters.Size;          //크기
 
+                    watcher.Changed += watcher_Change;
+                    watcher.Deleted += watcher_Delete;
+                    watcher.Created += watcher_Create;
+                    watcher.Renamed += watcher_Rename;
+
+                    _watchers.Add(watcher);
+                }
+            }
+            catch (UnauthorizedAccessException e)
+            {
+                log.LogWrite(e.Message);
+                log.LogWrite(e.Source);
+                log.LogWrite(e.StackTrace);
+            } 
+            catch (ArgumentException e)
+            {
+                log.LogWrite(e.Message);
+                log.LogWrite(e.Source);
+                log.LogWrite(e.StackTrace);
+            } catch (IOException e)
+            {
+                log.LogWrite(e.Message);
+                log.LogWrite(e.Source);
+                log.LogWrite(e.StackTrace);
+            }
         }
 
         /// <summary>
@@ -484,17 +537,60 @@ namespace croquis
 
         #region 전체화면 이벤트
 
+        public System.Windows.Thickness originContentView;
+        public double originContentWidth;
         /// <summary>
         /// 
         /// </summary>
-        private void FullDisplay(object sender, EventArgs e)
+        private void FullDisplay()
         {
-            if(fullDisplay.IsChecked  == true)
+            originContentView = ContentView.Margin;
+            originContentWidth = ContentView.Width;
+
+            if (fullDisplay.IsChecked  == true)
             {
+                
                 MainWin.WindowState = WindowState.Maximized;
+                MainWin.Visibility = Visibility.Collapsed;
+                MainWin.WindowStyle = WindowStyle.None;
+                MainWin.ResizeMode = ResizeMode.NoResize;
+                MainWin.Visibility = Visibility.Visible;
+                MainWin.Topmost = true;
+
+
+                croquisView.Visibility = Visibility.Hidden;
+                view.Visibility = Visibility.Hidden;
+                OptionView.Visibility = Visibility.Hidden;
+
+                ContentView.Width = MainGrid.RenderSize.Width;
+                ContentView.Margin = new System.Windows.Thickness { Left = 2, Top = 2, Right = 2, Bottom = 2 };
             }
         }
 
+        private void EndFullDisplayButton(object sender, KeyEventArgs e)
+        {
+            if(e.Key == Key.Escape)
+            {
+                MainWin.WindowState = WindowState.Normal;
+                MainWin.WindowStyle = WindowStyle.SingleBorderWindow;
+                MainWin.ResizeMode = ResizeMode.CanResize;
+                
+                MainWin.Topmost = false;
+
+
+
+
+                croquisView.Visibility = Visibility.Visible;
+                view.Visibility = Visibility.Visible;
+                OptionView.Visibility = Visibility.Visible;
+
+                ContentView.Width = originContentWidth;
+                ContentView.Margin = originContentView;
+            }
+            fullDisplay.IsChecked = false;
+
+
+        }
 
 
         #endregion
@@ -842,11 +938,15 @@ namespace croquis
 
 
         #region 윈도우 Control 사이즈 변경 
-        /// <summary>
-        /// 
-        /// </summary>
         Point mouseDown;
-        private void splitterMouseDownEvent(object sender, MouseEventArgs e)
+        /// <summary>
+        /// 분할기 컨트롤에서 마우스 왼쪽 버튼이 눌렸을 때 호출되는 이벤트 핸들러입니다.
+        /// 현재 마우스 포인터의 위치를 저장하여 드래그 동작을 준비합니다.
+        /// </summary>
+        /// <param name="sender">이벤트를 발생시킨 컨트롤</param>
+        /// <param name="e">마우스 이벤트 인수</param>
+
+        private void SplitterMouseDownEvent(object sender, MouseEventArgs e)
         {
             if (e.LeftButton == MouseButtonState.Pressed)
             {
@@ -855,62 +955,117 @@ namespace croquis
         }
 
         /// <summary>
-        /// 
+        /// 분할 창의 드래그 종료 시 동작하는 이벤트 핸들러입니다.
+        /// 드래그 종료 시 화면 요소의 크기 및 위치를 조절합니다.
         /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void splitterMouseupEvent(object sender, MouseEventArgs e)
+        /// <param name="sender">이벤트를 발생시킨 컨트롤</param>
+        /// <param name="e">마우스 이벤트 관련 인수</param>
+        private void SplitterMouseupEvent(object sender, MouseEventArgs e)
         {
+            // 드래그 종료 시 마우스 포인터 위치를 기록
             Point mouseup = e.GetPosition(this);
             double temp_x = (mouseup.X - mouseDown.X);
 
+            // View 요소의 너비 조절
             view.Width = view.Width + temp_x;
+            
             PreViewGrid.Width = view.Width;
             ContentView.Width = ContentView.Width - temp_x;
+
+            //컨트롤 사이즈 설정 
+            ViewSize.default_width = view.Width;
             ContenViewtSize.default_width = ContentView.Width;
+            PreViewSize.default_width = PreViewGrid.Width;
 
+            // View와 ContentView의 분할선 위치 및 너비 조절
             double contentSplitterLocation = view.Width + view.Margin.Left + view.Margin.Right;
-
             view_contentSplitter.Margin = new Thickness(contentSplitterLocation, 0, 0, 0);
-            view_contentSplitter.Width = 4;
         }
 
+        private ControlResize TempCroquisSize;
+        private ControlResize TempViewSize;
+        private ControlResize TempContentSize;
+        private ControlResize TempOptionSize;
+        private ControlResize TempFileSize;
+        private ControlResize TempPreViewSize;
+
         /// <summary>
-        /// 윈도우 창을 드래그로 변경시 동작하는 이벤트
-        /// 화면의 크기가 변경되면 FileGrid와 PreViewGrid의 Height가 변경된다. 
+        /// 윈도우 창의 크기가 변경될 때 발생하는 이벤트 핸들러입니다.
+        /// 창 크기 변경 시 FileGrid와 PreViewGrid의 높이가 조절됩니다.
         /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
+        /// <param name="sender">이벤트를 발생시킨 컨트롤</param>
+        /// <param name="e">크기 변경 관련 이벤트 인수</param>
         private void WinFormResizeEvent(object sender, SizeChangedEventArgs e)
         {
-
+            // 현재 창 크기와 기존 크기와의 차이를 계산하여 크기 조절에 활용
             ControlSize tempsize = MainFormSize.minus(MainWin.Width, MainWin.Height);
             double _tempH = tempsize.height / 2;
 
-            //Debug.WriteLine(tempsize.width);
-            if (WindowState == WindowState.Maximized)
+            if(fullDisplay.IsChecked == true)
             {
-                double MaxWindow_H = MainGrid.ActualHeight / 2;
-
-                
-
-                FileGrid.Height = MaxWindow_H - 3; // margin 값 수치 조정 
-                PreViewGrid.Height = MaxWindow_H - 3; // margin 값 수치 조정 
-
-                //contentView 추가 width 크기 재설정
-                double temp = MainWin.RenderSize.Width - view.Width - croquisView.Width - OptionView.Width - ContentView.Width;
-                Debug.WriteLine(temp);
-                ContentView.Width = (ContentView.Width + temp) - 26;
+                return;
             }
-            else
+
+
+            if (tempsize.height != 0 && tempsize.width != 0)
             {
-                //파일 그리드와 미리보기 그리드의 Height를 재설정한다.
+                // 창이 최대화되지 않은 상태에서는 FileGrid와 PreViewGrid의 높이를 조절
                 FileGrid.Height = FileGridSize.plusHeight(_tempH);
                 PreViewGrid.Height = PreViewSize.plusHeight(_tempH);
 
-                //contentView 추가 width 크기 재설정
+                // ContentView의 너비 조절
                 ContentView.Width = ContenViewtSize.plusWidth(tempsize.width - 2);
             }
+
+
+            
+
+            if ((WindowState == WindowState.Maximized) || tempsize.height == 0 && tempsize.width == 0)
+            {
+                TempCroquisSize = new ControlResize(croquisView.Width, croquisView.RenderSize.Height );
+                TempViewSize = new ControlResize(view.Width, view.RenderSize.Height);
+                TempContentSize = new ControlResize(ContentView.Width, ContentView.Height);
+                TempOptionSize = new ControlResize(OptionView.Width, OptionView.Height);
+                TempFileSize = new ControlResize(FileGrid.Width, FileGrid.Height);
+                TempPreViewSize = new ControlResize(PreViewGrid.Width, PreViewGrid.Height);
+
+                
+
+                // 창이 최대화된 상태에서는 FileGrid와 PreViewGrid의 높이를 조절
+                double MaxWindow_H = MainGrid.ActualHeight / 2;
+
+
+                //FileGrid.Height = MaxWindow_H - 3; // 상단 여백 값 조정
+                //PreViewGrid.Height = MaxWindow_H - 3; // 하단 여백 값 조정
+
+                // ContentView의 너비 조절
+                double temp = MainWin.RenderSize.Width - view.Width - croquisView.Width - OptionView.Width - ContentView.Width;
+                ContentView.Width = (ContentView.Width + temp) - 26;
+            } else
+            {
+                
+                croquisView.Width = TempCroquisSize.default_width;
+                croquisView.Height = TempCroquisSize.default_height;
+
+                view.Width = TempViewSize.default_width;
+                view.Height = TempViewSize.default_height;
+
+                
+
+                ContentView.Width = TempContentSize.default_width;
+                ContentView.Height = TempContentSize.default_height;
+
+                OptionView.Width = TempOptionSize.default_width;
+                OptionView.Height = TempOptionSize.default_height;
+            }
+
+
+            
+
+
+
+
+
         }
 
 
@@ -940,6 +1095,9 @@ namespace croquis
         /// <param name="e"></param>
         private void start_MouseDown(object sender, MouseButtonEventArgs e)
         {
+            FullDisplay();
+
+
             if (croquisTreeView.Items.Count == 0)
             {
                 WarningBox("이미지 파일이 없습니다.");
