@@ -1,4 +1,5 @@
-﻿using System;
+﻿using croquis;
+using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
@@ -16,12 +17,14 @@ public class ImageManager
     public int ImageSize { get; set; } = 129;
     public int PreviewGridWidth { get; set; }
 
+    private Log log;
 
     public MouseButtonEventHandler ImageClick { get; set; }
 
 
-    public ImageManager()
+    public ImageManager(Log log)
 	{
+        this.log = log;
 	}
 
 
@@ -72,6 +75,7 @@ public class ImageManager
         }
     }
 
+    
 
     //https://stackoverflow.com/questions/7533845/system-argumentexception-parameter-is-not-valid 
     // 해결할 수 있는 코드 같은데 아직 모르겠음
@@ -247,13 +251,13 @@ public class ImageManager
 
 
     /// <summary>
-    /// 지정된 이미지의 MemoryStream을 받아와 최대 너비 및 높이로 리사이즈한 후, 
-    /// 리사이즈된 이미지의 MemoryStream을 반환합니다.
+    /// 제공된 MemoryStream에서 이미지를 가져와 지정된 최대 너비 및 높이로 조정하고, 
+    /// 리사이즈된 이미지의 MemoryStream을 반환합니다. 이미지의 원래 종횡비는 유지됩니다.
     /// </summary>
-    /// <param name="sourceStream">리사이즈할 이미지의 MemoryStream</param>
-    /// <param name="maxWidth">최대 너비</param>
-    /// <param name="maxHeight">최대 높이</param>
-    /// <returns>리사이즈된 이미지의 MemoryStream</returns>
+    /// <param name="sourceStream">조정할 이미지가 들어있는 MemoryStream입니다.</param>
+    /// <param name="maxWidth">리사이즈된 이미지의 최대 너비입니다.</param>
+    /// <param name="maxHeight">리사이즈된 이미지의 최대 높이입니다.</param>
+    /// <returns>리사이즈된 이미지의 MemoryStream을 반환합니다.</returns>
     public MemoryStream ResizeImage(MemoryStream sourceStream, int maxWidth, int maxHeight)
     {
         try
@@ -287,8 +291,7 @@ public class ImageManager
         }
         catch (Exception ex)
         {
-            Debug.WriteLine("ResizeImage() 함수 에러");
-            Debug.WriteLine(ex.Message);
+            this.log.LogWrite(ex.StackTrace);
         }
 
         return null;

@@ -157,7 +157,7 @@ public class DirectoryManager
     /// </summary>
     /// <param name="path"></param>
     /// <returns></returns>
-    private ImageSource GetIcomImage(string path)
+    public ImageSource GetIcomImage(string path)
     {
         IntPtr hImgSmall; //system image list 
         IntPtr hImgLarge;
@@ -192,10 +192,11 @@ public class DirectoryManager
 
 
     /// <summary>
-    /// 이미지 확장자 체크
+    /// 주어진 파일 경로의 확장자가 이미지 확장자 중 하나인지 확인합니다.
+    /// 지원되는 이미지 확장자에는 .jpg, .jpeg, .bmp, .exif, .png, .tif, .tiff 등이 포함됩니다.
     /// </summary>
-    /// <param name="path"></param>
-    /// <returns></returns>
+    /// <param name="path">확장자를 확인하고자 하는 파일의 경로입니다.</param>
+    /// <returns>파일이 이미지 확장자를 가지면 true, 그렇지 않으면 false를 반환합니다.</returns>
     private bool IsImageExtension(string path)
     {
         string extension = Path.GetExtension(path);

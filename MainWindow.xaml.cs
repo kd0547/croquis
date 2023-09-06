@@ -5,9 +5,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 
 using System.IO;
-
+using System.Linq;
 using System.Runtime.InteropServices;
-
+using System.Runtime.Serialization.Formatters.Binary;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -77,6 +78,61 @@ namespace croquis
             MainGrid.KeyDown += EndFullDisplayButton;
             Run();
         }
+       
+        ImageSourceValueSerializer imageSourceValueSerializer = new ImageSourceValueSerializer();
+        
+        private void MainWin_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if(croquisTreeView == null)
+            {
+                return;
+            }
+
+
+            if (System.Windows.MessageBox.Show("크로키 기록을 저장하시겠습니까?", "croquis", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+            {
+                var treeViewData = SaveTreeViewItems(croquisTreeView);
+
+
+                // 객체를 JSON 문자열로 직렬화
+                string jsonData = JsonSerializer.Serialize(treeViewData);
+                
+                // JSON 문자열을 파일로 저장
+                File.WriteAllText("croquis.json", jsonData);
+            }
+        }
+
+        public TreeViewItemData SaveTreeViewItems(TreeView treeView)
+        {
+            var rootData = new TreeViewItemData();
+         
+            
+            foreach (ImageTreeViewItem item in treeView.Items)
+            {
+                rootData.Children.Add(SaveTreeViewItem(item));
+            }
+            return rootData;
+        }
+
+
+        private TreeViewItemData SaveTreeViewItem(ImageTreeViewItem item)
+        {
+            var itemData = new TreeViewItemData
+            {
+                HeaderText = item._FullName
+            };
+
+            foreach(ImageTreeViewItem subItem in item.Items)
+            {
+                itemData.Children.Add(SaveTreeViewItem(subItem));
+            }
+
+            
+            return itemData;
+        }
+
+
+
 
         /// <summary>
         /// 여러 컨트롤의 초기 크기를 설정하고 관련 정보를 저장하는 메서드입니다.
@@ -115,7 +171,7 @@ namespace croquis
         }
 
         /// <summary>
-        /// 윈도우 Load 이벤트 
+        /// 윈도우 Load 이벤트입니다.
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
@@ -125,16 +181,95 @@ namespace croquis
             //디렉토리 가져오기 
             _directoryManager.GetLocalDrives(DirectoryView);
 
-            //
             MainWin.SizeChanged += new System.Windows.SizeChangedEventHandler(this.WinFormResizeEvent);
+            LoadCroquisTree();
+
+            TreeViewItemData data = LoadCroquisTree();
+            LoadTreeViewItems(croquisTreeView, data);
+
+
+
         }
+
+        private TreeViewItemData LoadCroquisTree()
+        {
+            try
+            {
+                string LoadJsonData = File.ReadAllText("croquis.json");
+
+                if (LoadJsonData == null) return null;
+
+                TreeViewItemData item = JsonSerializer.Deserialize<TreeViewItemData>(LoadJsonData);
+
+
+
+                return item;
+            }
+            catch (Exception e)
+            {
+                log.LogWrite(e.StackTrace);
+            }
+
+            return null;
+        }
+
+
+        public void LoadTreeViewItems(TreeView treeView, TreeViewItemData data)
+        {
+            treeView.Items.Clear();
+            foreach (var itemData in data.Children)
+            {
+                treeView.Items.Add(LoadTreeViewItem(itemData));
+            }
+        }
+
+        private ImageTreeViewItem LoadTreeViewItem(TreeViewItemData itemData)
+        {
+            string path = itemData.HeaderText;
+            string extension = Path.GetExtension(path);
+            ImageTreeViewItem item = null;
+
+            if (extension == "")
+            {
+                DirectoryInfo directory = new DirectoryInfo(path);
+                ImageSource icon= _directoryManager.GetIcomImage(path);
+
+                item = _itemFactory.CreateTargetGetDirectories(icon, directory.Name, directory.FullName);
+            } 
+            else
+            {
+                FileInfo fileInfo = new FileInfo(path);
+
+                item = _itemFactory.CreateTargetGetFile(fileInfo.Name, fileInfo.FullName);
+            }
+            
+
+
+            foreach (var subItemData in itemData.Children)
+            {
+                item.Items.Add(LoadTreeViewItem(subItemData));
+            }
+
+            return item;
+        }
+
+
+
+
+
+
+
+
+
+       
+
 
         /// <summary>
         /// 
         /// </summary>
         private void InitImageManager()
         {
-            _imageManager = new ImageManager()
+            _imageManager = new ImageManager(log)
             {
 
                 ImageClick = ImageClickEvent
@@ -336,6 +471,9 @@ namespace croquis
             } catch (InvalidOperationException e)
             {
                 
+            } catch (Exception e)
+            {
+
             }
 
         }
@@ -432,11 +570,11 @@ namespace croquis
 
         #region 파일 drag & Drop 이벤트
         /// <summary>
-        /// 소스 트리뷰를 클릭할 시 발생하는 이벤트
-        /// Drag & Drop의 시작 
+        /// 소스 트리뷰 아이템을 클릭할 때 발생하는 이벤트 핸들러입니다.
+        /// 해당 이벤트는 Drag & Drop 작업을 시작하기 위해 호출됩니다.
         /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
+        /// <param name="sender">이벤트 발생 객체</param>
+        /// <param name="e">Mouse 이벤트에 대한 매개변수</param>
         private void PreViewMouseLeftButtonDownEvent(object sender, MouseEventArgs e)
         {
             DependencyObject dependencyObject = DirectoryView.InputHitTest(e.GetPosition(DirectoryView)) as DependencyObject;
@@ -450,7 +588,7 @@ namespace croquis
             }
             catch (ArgumentNullException ex)
             {
-                Debug.WriteLine(ex.Message);
+                log.LogWrite(ex.Message);
             }
         }
 
@@ -657,9 +795,6 @@ namespace croquis
         #endregion
 
         #region 이미지 이벤트
-
-
-        #endregion
         /// <summary>
         /// 파일 항목을 더블 클릭했을 때 발생하는 이벤트 핸들러입니다.
         /// </summary>
@@ -684,7 +819,7 @@ namespace croquis
                 // 파일이 존재하면 미리보기 이미지 로드 및 표시
                 if (fileInfos.Length != 0)
                 {
-                    _imageManager.LoadAndDisplayPreviewImages(PictureViewer,clickItem.Tag.ToString());
+                    _imageManager.LoadAndDisplayPreviewImages(PictureViewer, clickItem.Tag.ToString());
                 }
                 e.Handled = true;
 
@@ -694,7 +829,10 @@ namespace croquis
                 System.Windows.MessageBox.Show(exception.Message);
             }
 
-         }
+        }
+
+        #endregion
+
 
 
 
@@ -1249,6 +1387,8 @@ namespace croquis
             }
         }
         #endregion
+
+        
     }
 
 }

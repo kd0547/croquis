@@ -1,18 +1,21 @@
 ﻿using System;
+using System.Runtime.Serialization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
+
+
 public class ImageTreeViewItem : TreeViewItem
 {
-	Image _Image = null;
-	ImageSource _ImageSource = null;
+    Image _Image = null;
+    ImageSource _ImageSource = null;
 	TextBlock _textBlock = null;
-	string _FullName = string.Empty;
-	
-	public string FullName
+	public string _FullName = string.Empty;
+
+    public string FullName
 	{
 		get { return _FullName; }
 		set { _FullName = value;
@@ -40,6 +43,8 @@ public class ImageTreeViewItem : TreeViewItem
 			_Image.Source = _ImageSource;
 		}
 	}
+
+
     public ImageTreeViewItem(ImageTreeViewItemBuilder builder)
     {
         CreateTreeViewItemTemplate();
@@ -57,11 +62,6 @@ public class ImageTreeViewItem : TreeViewItem
         if(builder._PreviewMouseDown != null) { this.PreviewMouseDown += builder._PreviewMouseDown; }
         if(builder._PreviewMouseLeftButtonDown != null) { this.PreviewMouseLeftButtonDown += builder._PreviewMouseLeftButtonDown; }
         if( builder._PreviewMouseRightButtonDown != null) { this.PreviewMouseRightButtonDown += builder._PreviewMouseRightButtonDown; }
-        
-        
-
-        
-
     }
 
     public class ImageTreeViewItemBuilder
@@ -81,10 +81,7 @@ public class ImageTreeViewItem : TreeViewItem
         public MouseButtonEventHandler _PreviewMouseRightButtonDown;
 
         public ImageTreeViewItemBuilder()
-        {
-
-
-            
+        {        
         }
 
         public ImageTreeViewItemBuilder WithText(string Text)

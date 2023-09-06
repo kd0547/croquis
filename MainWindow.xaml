@@ -7,7 +7,7 @@
         xmlns:local="clr-namespace:croquis"
         mc:Ignorable="d" 
        
-        Title="croquis" Height="900" Width="1720" MinHeight="900" MinWidth="1720" Background="#262626" Loaded="WindowLoadEvent" 
+        Title="croquis" Height="900" Width="1720" MinHeight="900" MinWidth="1720" Background="#262626" Loaded="WindowLoadEvent" Closing="MainWin_Closing"
         >
     <Grid x:Name="MainGrid" Background="#262626" >
 
