@@ -6,14 +6,15 @@ using System.Windows.Interop;
 using System.Windows.Media.Imaging;
 using System.Windows.Media;
 using System.Windows.Controls;
+using croquis;
 
 public class DirectoryManager
 {
     private ImageTreeViewItemFactory imageTreeViewItemFactory;
-    private Log log;
+    private ExceptionLogger log;
 
 
-    public DirectoryManager(ImageTreeViewItemFactory imageTreeViewItemFactory, Log log)
+    public DirectoryManager(ImageTreeViewItemFactory imageTreeViewItemFactory, ExceptionLogger log)
     {
         this.imageTreeViewItemFactory = imageTreeViewItemFactory;
         this.log = log;
@@ -31,6 +32,8 @@ public class DirectoryManager
             try
             {
                 ImageTreeViewItem item = imageTreeViewItemFactory.CreateLocalDrivesItem(GetIcomImage(dir), dir, dir);
+
+                
                 GetSubDirectories(item);
 
 
@@ -69,7 +72,7 @@ public class DirectoryManager
                     continue;
                 }
 
-                ImageTreeViewItem subItem = imageTreeViewItemFactory.CreateSubDirectories(GetIcomImage(dir.FullName), dir.Name, dir.FullName);
+                ImageTreeViewItem subItem = imageTreeViewItemFactory.CreateSubDirectories(GetIcomImage(dir.FullName), dir.Name, dir.FullName, BookMarkEmptyStarImage());
                 
                 //subItem.MouseEnter += SourceTreeViewEntryMouseEvent;
 
@@ -78,11 +81,11 @@ public class DirectoryManager
         }
         catch (UnauthorizedAccessException uaae)
         {
-
+            log.LogWrite(uaae);
         }
         catch (IOException ioe)
         {
-
+            log.LogWrite(ioe);
         }
 
     }
@@ -148,8 +151,163 @@ public class DirectoryManager
     #endregion
 
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="treeView"></param>
+    /// <param name="path"></param>
+    #region
+    public void AddBookMarkTreeItem(TreeView treeView,string path)
+    {
+        try
+        {
+            DirectoryInfo directory = new DirectoryInfo(path);
+
+            if(directory == null) return;
+
+            ImageTreeViewItem item = imageTreeViewItemFactory.CreateSubDirectories(GetIcomImage(directory.FullName), directory.Name, directory.FullName, BookMarkEmptyStarImage());
 
 
+            foreach (DirectoryInfo dir in directory.GetDirectories())
+            {
+                if (IsNotHiddenDirectory(dir))
+                {
+                    continue;
+                }
+
+                ImageTreeViewItem subItem = imageTreeViewItemFactory.CreateSubDirectories(GetIcomImage(dir.FullName), dir.Name, dir.FullName, BookMarkEmptyStarImage());
+
+
+                item.Items.Add(subItem);
+            }
+
+            treeView.Items.Add(item);
+        }
+        catch (Exception e) 
+        {
+            log.LogWrite(e);
+        }
+
+    }
+    /// <summary>
+    /// 즐겨찾기 트리에 추가하는 메서드 
+    /// </summary>
+    /// <param name="treeView"></param>
+    /// <param name="path"></param>
+    #region
+    public void AddBookMarkTreeItem(TreeView treeView, ImageTreeViewItem viewItem)
+    {
+        try
+        {
+            string path = viewItem.Tag.ToString();
+            DirectoryInfo directory = new DirectoryInfo(path);
+
+            if (directory == null) return;
+
+
+
+            ImageTreeViewItem item = imageTreeViewItemFactory.CreateSubDirectories(GetIcomImage(directory.FullName), directory.Name, directory.FullName, BookMarkImage(viewItem));
+            item.IsBookMarkSelected = true;
+
+            foreach (DirectoryInfo dir in directory.GetDirectories())
+            {
+                if (IsNotHiddenDirectory(dir))
+                {
+                    continue;
+                }
+
+                ImageTreeViewItem subItem = imageTreeViewItemFactory.CreateSubDirectories(GetIcomImage(dir.FullName), dir.Name, dir.FullName, BookMarkImage(viewItem));
+                subItem.IsBookMarkSelected = true;
+
+                item.Items.Add(subItem);
+            }
+
+            treeView.Items.Add(item);
+        }
+        catch (Exception e)
+        {
+            log.LogWrite(e);
+        }
+
+    }
+
+    #endregion
+
+
+
+
+    public ImageSource BookMarFullStarImage()
+    {
+        System.Drawing.Bitmap bitmap = Resource1.FullStar;
+        System.Drawing.Bitmap resize = new System.Drawing.Bitmap(bitmap, new System.Drawing.Size(14, 14));
+        BitmapImage bitmapImage = new BitmapImage();
+        bitmapImage.BeginInit();
+        MemoryStream ms = new MemoryStream();
+        resize.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+
+        ms.Seek(0, SeekOrigin.Begin);
+        bitmapImage.StreamSource = ms;
+        bitmapImage.EndInit();
+
+        return bitmapImage;
+    }
+
+
+
+
+
+    public ImageSource BookMarkEmptyStarImage()
+    {
+        System.Drawing.Bitmap bitmap = Resource1.EmptyStar;
+        System.Drawing.Bitmap resize = new System.Drawing.Bitmap(bitmap, new System.Drawing.Size(14, 14));
+        BitmapImage bitmapImage = new BitmapImage();
+        bitmapImage.BeginInit();
+        MemoryStream ms = new MemoryStream();
+        resize.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+
+        ms.Seek(0, SeekOrigin.Begin);
+        bitmapImage.StreamSource = ms;
+        bitmapImage.EndInit();
+
+        return bitmapImage;
+    }
+    public ImageSource BookMarkImage(ImageTreeViewItem item)
+    {
+        try
+        {
+            System.Drawing.Bitmap bitmap = null;
+            if (item.IsBookMarkSelected)
+            {
+                bitmap = Resource1.FullStar;
+            }
+            else
+            {
+                bitmap = Resource1.EmptyStar;
+            }
+
+            if(bitmap == null)
+            {
+                bitmap = Resource1.EmptyStar;
+            }
+
+            System.Drawing.Bitmap resize = new System.Drawing.Bitmap(bitmap, new System.Drawing.Size(14, 14));
+            BitmapImage bitmapImage = new BitmapImage();
+            bitmapImage.BeginInit();
+            MemoryStream ms = new MemoryStream();
+            resize.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+
+            ms.Seek(0, SeekOrigin.Begin);
+            bitmapImage.StreamSource = ms;
+            bitmapImage.EndInit();
+
+            return bitmapImage;
+        } catch (Exception e)
+        {
+            log.LogWrite(e);
+        }
+
+        return null;
+    }
 
 
     /// <summary>
@@ -159,7 +317,7 @@ public class DirectoryManager
     /// <returns></returns>
     public ImageSource GetIcomImage(string path)
     {
-        IntPtr hImgSmall; //system image list 
+        IntPtr hImgSmall; //system Image list 
         IntPtr hImgLarge;
         string Fname;
         SHFILEINFO shinfo = new SHFILEINFO();
@@ -213,3 +371,4 @@ public class DirectoryManager
         return false;
     }
 }
+#endregion

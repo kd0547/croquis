@@ -1,9 +1,9 @@
 ﻿using System;
 
-public class PictureBoxRowCols
+public class PreviewGridSize
 {
-    public PictureBoxRowCols() { }
-    public PictureBoxRowCols(int rows, int cols)
+    public PreviewGridSize() { }
+    public PreviewGridSize(int rows, int cols)
     {
         Rows = rows;
         Cols = cols;

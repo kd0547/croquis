@@ -14,18 +14,22 @@ public class ImageTreeViewItemFactory
     public MouseButtonEventHandler _PreviewMouseLeftButtonDown;
     public MouseButtonEventHandler _PreviewMouseRightButtonDown;
 
-
+    
+    public MouseButtonEventHandler _BookMarKImageLeftButtonDown;
+    
 
 
     public ImageTreeViewItemFactory(FactoryBuilder builder)
     {
-        _Expanded = builder._Expanded;
-        _TargetExpanded = builder._TargetExpanded;
-        _PreviewMouseDoubleClick = builder._PreviewMouseDoubleClick;
-        _MouseDoubleClick = builder._MouseDoubleClick;
-        _PreviewMouseDown = builder._PreviewMouseDown;
-        _PreviewMouseLeftButtonDown = builder._PreviewMouseLeftButtonDown;
-        _PreviewMouseRightButtonDown = builder._PreviewMouseRightButtonDown;
+        this._Expanded = builder._Expanded;
+        this._TargetExpanded = builder._TargetExpanded;
+        this._PreviewMouseDoubleClick = builder._PreviewMouseDoubleClick;
+        this._MouseDoubleClick = builder._MouseDoubleClick;
+        this._PreviewMouseDown = builder._PreviewMouseDown;
+        this._PreviewMouseLeftButtonDown = builder._PreviewMouseLeftButtonDown;
+        this._PreviewMouseRightButtonDown = builder._PreviewMouseRightButtonDown;
+
+        this._BookMarKImageLeftButtonDown = builder._BookMarKImageLeftButtonDown;
     }
 
     public class FactoryBuilder
@@ -37,6 +41,8 @@ public class ImageTreeViewItemFactory
         public MouseButtonEventHandler _PreviewMouseDown;
         public MouseButtonEventHandler _PreviewMouseLeftButtonDown;
         public MouseButtonEventHandler _PreviewMouseRightButtonDown;
+
+        public MouseButtonEventHandler _BookMarKImageLeftButtonDown;
 
         public FactoryBuilder SetTargetExpanded(RoutedEventHandler TargetExpanded)
         {
@@ -79,6 +85,11 @@ public class ImageTreeViewItemFactory
             _PreviewMouseRightButtonDown = handler;
             return this;
         }
+        public FactoryBuilder SetBookMarKImageLeftButtonDown(MouseButtonEventHandler handler)
+        {
+            _BookMarKImageLeftButtonDown = handler;
+            return this;
+        }
 
         public ImageTreeViewItemFactory Build()
         {
@@ -89,46 +100,77 @@ public class ImageTreeViewItemFactory
     public ImageTreeViewItem CreateLocalDrivesItem(ImageSource ImageSource, string Text, string FullName)
     {
         return new ImageTreeViewItem.ImageTreeViewItemBuilder()
-            .WithFullName(FullName)
-            .WithImageSource(ImageSource)
-            .WithText(Text)
+            .SetFullName(FullName)
+            .SetImageSource(ImageSource)
+            .SetText(Text)
             //이벤트
-            .WithExpandedEvent(_Expanded)
+            .SetExpandedEvent(_Expanded)
             .build ();
     }
 
     public ImageTreeViewItem CreateSubDirectories(ImageSource ImageSource, string Text, string FullName)
     {
         return new ImageTreeViewItem.ImageTreeViewItemBuilder()
-            .WithFullName(FullName)
-            .WithImageSource(ImageSource)
-            .WithText(Text)
+            .SetFullName(FullName)
+            .SetImageSource(ImageSource)
+            .SetText(Text)
             //이벤트
-            .WithExpandedEvent(_Expanded)
-            .WithPreviewMouseDoubleClickEvent(_PreviewMouseDoubleClick)
+            .SetExpandedEvent(_Expanded)
+            .SetPreviewMouseDoubleClickEvent(_PreviewMouseDoubleClick)
             .WithPreviewMouseDownEvent(_PreviewMouseDown)
+            .build();
+    }
+
+    public ImageTreeViewItem CreateSubDirectories(ImageSource ImageSource, string Text, string FullName, ImageSource BookMarkImageSource)
+    {
+        return new ImageTreeViewItem.ImageTreeViewItemBuilder()
+            .SetFullName(FullName)
+            .SetImageSource(ImageSource)
+            .SetText(Text)
+            .SetBookMarkImageSource(BookMarkImageSource)
+            //이벤트
+            .SetExpandedEvent(_Expanded)
+            .SetPreviewMouseDoubleClickEvent(_PreviewMouseDoubleClick)
+            .WithPreviewMouseDownEvent(_PreviewMouseDown)
+
+            .SetBookMarKImageLeftButtonDownEvent(_BookMarKImageLeftButtonDown)
             .build();
     }
 
     public ImageTreeViewItem CreateTargetGetDirectories(ImageSource ImageSource, string Text, string FullName)
     {
         return new ImageTreeViewItem.ImageTreeViewItemBuilder()
-            .WithFullName(FullName)
-            .WithImageSource(ImageSource)
-            .WithText(Text)
+            .SetFullName(FullName)
+            .SetImageSource(ImageSource)
+            .SetText(Text)
             //이벤트
-            .WithExpandedEvent(_TargetExpanded)
+            .SetExpandedEvent(_TargetExpanded)
             .WithMouseDoubleClickEvent(_PreviewMouseDoubleClick)
             .WithPreviewMouseRightButtonDownEvent(_PreviewMouseRightButtonDown)
             .build();
     }
 
+    public ImageTreeViewItem CreateTargetGetDirectories(ImageSource ImageSource, string Text, string FullName, ImageSource BookMarkImage)
+    {
+        return new ImageTreeViewItem.ImageTreeViewItemBuilder()
+            .SetFullName(FullName)
+            .SetImageSource(ImageSource)
+            .SetText(Text)
+            
+            //이벤트
+            .SetExpandedEvent(_TargetExpanded)
+            .WithMouseDoubleClickEvent(_PreviewMouseDoubleClick)
+            .WithPreviewMouseRightButtonDownEvent(_PreviewMouseRightButtonDown)
+            .build();
+    }
+
+
     public ImageTreeViewItem CreateTargetGetFile(string Text, string FullName)
     {
         return new ImageTreeViewItem.ImageTreeViewItemBuilder()
-            .WithFullName(FullName)
+            .SetFullName(FullName)
             
-            .WithText(Text)
+            .SetText(Text)
             //이벤트
             .WithPreviewMouseLeftButtonDownEvent(_PreviewMouseLeftButtonDown)
             .WithPreviewMouseRightButtonDownEvent(_PreviewMouseRightButtonDown)

@@ -3,9 +3,9 @@ using System;
 
 using System.Collections.Generic;
 using System.Diagnostics;
-
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text.Json;
@@ -13,13 +13,14 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
 using System.Windows.Threading;
-
+using System.Xml;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Tab;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.TextBox;
 
@@ -33,9 +34,9 @@ namespace croquis
 
     public partial class MainWindow : Window
     {
-        private Log log;
-
-        private ImageTreeViewItemFactory _itemFactory;
+        private ExceptionLogger log;
+        private FileWatcher fileWatcher;
+        private ImageTreeViewItemFactory imageTreeViewItemFactory;
         private DirectoryManager _directoryManager;
         private ImageManager _imageManager;
         private Point _lastMouseDown;
@@ -55,13 +56,10 @@ namespace croquis
 
          private double PreGridMinSize ;
 
-        //파일 시스템 감지 
-        private List<FileSystemWatcher> _watchers;
-
+       
         public MainWindow()
         {
-            log = new Log();
-
+            log = new ExceptionLogger();
 
             InitializeComponent();
             SetAllowDrop();
@@ -70,13 +68,24 @@ namespace croquis
             InitControlSize();
 
 
+            fileWatcher = new FileWatcher(_directoryManager, imageTreeViewItemFactory, log)
+            {
+                DirectoryView = DirectoryView,
+                PictureViewer = PictureViewer,
+            };
+            fileWatcher.Config();
+            //테스트
+            DisplayVisibility();
+
             croquisPlay = new CroquisPlay(ThreadSleep, showImage);
             croquisTreeView.Drop += CroquisTreeDropEvent;
+
             //fullDisplay.Click += FullDisplay;
+            
 
             MainWin.PreviewKeyDown += EndFullDisplayButton;
             MainGrid.KeyDown += EndFullDisplayButton;
-            Run();
+
         }
        
         ImageSourceValueSerializer imageSourceValueSerializer = new ImageSourceValueSerializer();
@@ -182,87 +191,25 @@ namespace croquis
             _directoryManager.GetLocalDrives(DirectoryView);
 
             MainWin.SizeChanged += new System.Windows.SizeChangedEventHandler(this.WinFormResizeEvent);
-            LoadCroquisTree();
-
-            TreeViewItemData data = LoadCroquisTree();
-            LoadTreeViewItems(croquisTreeView, data);
-
-
-
+          
         }
 
-        private TreeViewItemData LoadCroquisTree()
+        #region TopMost체크박스
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void TopMost_Checked(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                string LoadJsonData = File.ReadAllText("croquis.json");
-
-                if (LoadJsonData == null) return null;
-
-                TreeViewItemData item = JsonSerializer.Deserialize<TreeViewItemData>(LoadJsonData);
-
-
-
-                return item;
-            }
-            catch (Exception e)
-            {
-                log.LogWrite(e.StackTrace);
-            }
-
-            return null;
+            MainWin.Topmost = true;
         }
 
-
-        public void LoadTreeViewItems(TreeView treeView, TreeViewItemData data)
+        private void TopMost_Unchecked(object sender, RoutedEventArgs e)
         {
-            treeView.Items.Clear();
-            foreach (var itemData in data.Children)
-            {
-                treeView.Items.Add(LoadTreeViewItem(itemData));
-            }
+            MainWin.Topmost = false;
         }
-
-        private ImageTreeViewItem LoadTreeViewItem(TreeViewItemData itemData)
-        {
-            string path = itemData.HeaderText;
-            string extension = Path.GetExtension(path);
-            ImageTreeViewItem item = null;
-
-            if (extension == "")
-            {
-                DirectoryInfo directory = new DirectoryInfo(path);
-                ImageSource icon= _directoryManager.GetIcomImage(path);
-
-                item = _itemFactory.CreateTargetGetDirectories(icon, directory.Name, directory.FullName);
-            } 
-            else
-            {
-                FileInfo fileInfo = new FileInfo(path);
-
-                item = _itemFactory.CreateTargetGetFile(fileInfo.Name, fileInfo.FullName);
-            }
-            
-
-
-            foreach (var subItemData in itemData.Children)
-            {
-                item.Items.Add(LoadTreeViewItem(subItemData));
-            }
-
-            return item;
-        }
-
-
-
-
-
-
-
-
-
-       
-
+        #endregion
 
         /// <summary>
         /// 
@@ -281,7 +228,7 @@ namespace croquis
         /// </summary>
         private void InitImageTreeViewFactory()
         {
-            _itemFactory = new ImageTreeViewItemFactory.FactoryBuilder()
+            imageTreeViewItemFactory = new ImageTreeViewItemFactory.FactoryBuilder()
                 .SetExpanded(new RoutedEventHandler(itemExpanded))
                 .SetPreviewMouseDoubleClick(LoadAndDisplayPreviewImagesOnFileItemDoubleClick)
                 .SetMouseDoubleClick(LoadAndDisplayPreviewImagesOnFileItemDoubleClick)
@@ -289,271 +236,16 @@ namespace croquis
 
                 .SetPreviewMouseLeftButtonDown(ImageClickEvent)
                 .SetPreviewMouseRightButtonDown(CroquisRightClickEvent)
+
+                .SetBookMarKImageLeftButtonDown(BookMarkClickEvent)
                 .Build();
 
 
-            _directoryManager = new DirectoryManager(_itemFactory, log);
+            _directoryManager = new DirectoryManager(imageTreeViewItemFactory, log);
 
 
         }
         #endregion
-
-        
-        private void Run()
-        {
-            try
-            {
-                string osDrive = Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.System));
-                Debug.WriteLine(osDrive);
-                string[] drivers = Directory.GetLogicalDrives();
-                _watchers = new List<FileSystemWatcher>();
-
-                foreach (string driver in drivers)
-                {
-                    if(driver.Equals(osDrive))
-                    {
-                        continue;
-                    }
-
-                    FileSystemWatcher watcher = new FileSystemWatcher(driver);
-                    watcher.Filter = "*.*";
-
-                    watcher.EnableRaisingEvents = true;
-                    //하위 디렉토리의 변화까지 감지
-                    watcher.IncludeSubdirectories = true;
-
-                    
-
-                    watcher.NotifyFilter = NotifyFilters.Attributes    //속성 변경
-                                        | NotifyFilters.CreationTime   //생성시간
-                                        | NotifyFilters.DirectoryName  //디렉토리 이름
-                                        | NotifyFilters.FileName       //파일 이름
-                                        | NotifyFilters.LastAccess     //마지막 접근
-                                        | NotifyFilters.LastWrite      //마지막 쓰여진
-                                        | NotifyFilters.Security       //보안
-                                        | NotifyFilters.Size;          //크기
-
-                    watcher.Changed += watcher_Change;
-                    watcher.Deleted += watcher_Delete;
-                    watcher.Created += watcher_Create;
-                    watcher.Renamed += watcher_Rename;
-
-                    _watchers.Add(watcher);
-                }
-            }
-            catch (UnauthorizedAccessException e)
-            {
-                log.LogWrite(e.Message);
-                log.LogWrite(e.Source);
-                log.LogWrite(e.StackTrace);
-            } 
-            catch (ArgumentException e)
-            {
-                log.LogWrite(e.Message);
-                log.LogWrite(e.Source);
-                log.LogWrite(e.StackTrace);
-            } catch (IOException e)
-            {
-                log.LogWrite(e.Message);
-                log.LogWrite(e.Source);
-                log.LogWrite(e.StackTrace);
-            }
-        }
-
-        /// <summary>
-        /// 디렉토리가 추가될 때 발생하는 이벤트  
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void watcher_Create(object sender, FileSystemEventArgs e)
-        {
-            string root = Path.GetPathRoot(e.FullPath);
-
-            Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
-            {
-                foreach (ImageTreeViewItem item in DirectoryView.Items)
-                {
-                    string rootPath = item.Tag.ToString();
-                    if (rootPath.Equals(root))
-                    {
-                        CreateDirectoryTree(item, e.FullPath);
-                    }
-                }
-            }));
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void watcher_Change(object sender, FileSystemEventArgs e)
-        {
-            if(e.ChangeType != WatcherChangeTypes.Changed) return;
-
-            Debug.WriteLine($"변화된 파일 경로 {e.FullPath}");
-            Debug.WriteLine($"변화된 파일 경로 {Path.GetDirectoryName(e.FullPath)}");
-        }
-
-
-        
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void watcher_Delete(object sender, FileSystemEventArgs e)
-        {
-            Debug.WriteLine($"삭제된 파일 경로 {e.FullPath}");
-            Debug.WriteLine($"삭제된 파일 경로 {Path.GetDirectoryName(e.FullPath)}");
-
-            string root = Path.GetPathRoot(e.FullPath);
-
-            Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
-            {
-                string PathEx = Path.GetExtension(e.FullPath); //directory or file 
-
-                if (PathEx == "")
-                {
-                    foreach (ImageTreeViewItem item in DirectoryView.Items)
-                    {
-                        string rootPath = item.Tag.ToString();
-                        if (rootPath.Equals(root))
-                        {
-
-                            RemoveDirectoryTree(item, e.FullPath);
-
-                        }
-                    }
-                }
-                else
-                {
-                    RemoveImage(PictureViewer, e.FullPath);
-                }
-
-                 
-            }));
-
-        }
-
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void watcher_Rename(object sender, RenamedEventArgs e)
-        {
-
-            Debug.WriteLine($"이름이 바뀐 파일 경로 {e.OldFullPath}");
-            Debug.WriteLine($"이름이 바뀐 파일 경로 {e.FullPath}");
-            Debug.WriteLine($"이름이 바뀐 파일 경로 {Path.GetDirectoryName(e.FullPath)}");
-        }
-
-        /// <summary>
-        /// 미리보기에서 이미지를 삭제한다.
-        /// </summary>
-        /// <param name="tree"></param>
-        /// <param name="DeletePath"></param>
-        private void RemoveImage(ListBox tree, string DeletePath)
-        {
-            try
-            {
-                if (PictureViewer.Items.Count == 0) return;
-                foreach (System.Windows.Controls.Image item in PictureViewer.Items)
-                {
-                    if (item.Tag.ToString().Equals(DeletePath))
-                    {
-                        tree.Items.Remove(item);
-                    }
-                }
-            } catch (InvalidOperationException e)
-            {
-                
-            } catch (Exception e)
-            {
-
-            }
-
-        }
-
-        /// <summary>
-        /// 파일 탐색기에서 파일을 삭제한다. 
-        /// </summary>
-        /// <param name="tree"></param>
-        /// <param name="DeletePath"></param>
-        private void RemoveDirectoryTree(ImageTreeViewItem tree, string DeletePath)
-        {
-            try
-            {
-                if (tree.Tag.ToString() == DeletePath)
-                {
-                    DependencyObject dependency = tree.Parent;
-                    ImageTreeViewItem ImageParent = dependency as ImageTreeViewItem;
-
-                    if (ImageParent != null)
-                    {
-                        ImageParent.Items.Remove(tree);
-                        ImageParent.IsSelected = false;
-                    }
-
-                    return;
-                }
-
-                if (tree.Items.Count == 0) return;
-                foreach (ImageTreeViewItem treeViewItem in tree.Items)
-                {
-                    RemoveDirectoryTree(treeViewItem, DeletePath);
-                }
-            } catch(InvalidOperationException e)
-            {
-
-            }
-        }
-
-        /// <summary>
-        /// 로컬드라이브에 새로운 디렉토리가 추가되면 파일 탐색기에 추가한다.
-        /// </summary>
-        /// <param name="tree"></param>
-        /// <param name="NewPath"></param>
-        private void CreateDirectoryTree(ImageTreeViewItem tree, string NewPath)
-        {
-            string PathEx = Path.GetExtension(NewPath); //directory or file 
-            string _Path = Path.GetDirectoryName(NewPath);
-
-            //directory 
-            if (PathEx == "") 
-            {
-                string TreeTagPath = tree.Tag.ToString();
-
-                if (TreeTagPath.Equals(_Path))
-                {
-                    string TreeTagPathFileName = Path.GetFileName(NewPath);
-                    ImageTreeViewItem item = ImageTreeViewItem.createImageTreeViewItem(GetIcomImage(NewPath), TreeTagPathFileName, NewPath);
-                    item.Expanded += new RoutedEventHandler(itemExpanded);
-                    item.PreviewMouseDoubleClick += LoadAndDisplayPreviewImagesOnFileItemDoubleClick;
-                    item.PreviewMouseDown += PreViewMouseLeftButtonDownEvent;
-                    //item.MouseEnter += SourceTreeViewEntryMouseEvent;
-
-                    tree.Items.Add(item);
-                }
-            } 
-            else
-            {
-                //File을 사용할 때 추가하기 
-            }
-            
-            if (tree.Items.Count == 0) return;
-            foreach (ImageTreeViewItem treeViewItem in tree.Items)
-            {
-                CreateDirectoryTree(treeViewItem, NewPath);
-            }
-        }
-
-
-
-        
 
         #region 
         /// <summary>
@@ -672,6 +364,232 @@ namespace croquis
         #endregion
 
 
+        #region 북마크 기능 
+        private void BookMarkClickEvent(object sender, MouseButtonEventArgs e)
+        {
+            Image clickImage = sender as Image;
+            if (clickImage == null)
+                return;
+            
+            ImageTreeViewItem clickImageTreeItem = getParent(clickImage);
+
+
+            if (clickImageTreeItem == null)
+                return;
+
+            //북마크에 없으면 
+            if(clickImageTreeItem.IsBookMarkSelected == false) 
+            {
+                clickImageTreeItem.IsBookMarkSelected = true;
+                //즐겨찾기에 저장 
+                _directoryManager.AddBookMarkTreeItem(bookMarkView, clickImageTreeItem);
+
+                ImageSource fullStartImage = _directoryManager.BookMarFullStarImage();
+
+                clickImageTreeItem.BookMarkImageSource = fullStartImage;
+
+                checkFullImage(clickImageTreeItem, fullStartImage);
+
+                return;
+            }
+
+            if(clickImageTreeItem.IsBookMarkSelected == true) 
+            {
+                //즐겨찾기에서 삭제 
+                RemoveBookMark(bookMarkView,clickImageTreeItem);
+
+                ImageTreeViewItem Item = FindImageTreeViewItem(DirectoryView, clickImageTreeItem);
+
+                if(Item != null)
+                {
+                    //탐색기에서 즐겨찾기 기능 해제 
+                    EmptyImage(DirectoryView, Item);
+                }
+                
+            }
+
+        }
+
+        private ImageTreeViewItem FindImageTreeViewItem(TreeView directoryView, ImageTreeViewItem clickImageTreeItem)
+        {
+            if (directoryView.Items.Count == 0)
+                return null;
+
+
+            //탐색 수를 줄이기 위해 루트를 조회 
+            string clickImageTreeItemFullName = clickImageTreeItem.FullName;
+            string clickImageTreeItemRoot = Path.GetPathRoot(clickImageTreeItemFullName);
+
+            ImageTreeViewItem selectItem = null;
+
+            foreach (ImageTreeViewItem item in directoryView.Items)
+            {
+                string itemFullName = item.FullName;
+                string root = Path.GetPathRoot(itemFullName);
+
+                if(root.Equals(clickImageTreeItemRoot))
+                {
+                    selectItem = item;
+                }
+            }
+
+            if (selectItem == null)
+                return null;
+
+            foreach(ImageTreeViewItem item in selectItem.Items)
+            {
+                ImageTreeViewItem foundItem = FindImageTreeViewItemSub(item, clickImageTreeItem);
+
+                if(foundItem != null) 
+                {
+                    return foundItem;
+                }
+            }
+            
+
+
+            return null;
+        }
+
+        private ImageTreeViewItem FindImageTreeViewItemSub(ImageTreeViewItem item, ImageTreeViewItem clickImageTreeItem)
+        {
+            if (item.Items.Count == 0)
+                return null;
+
+            string clickImageTreeSub = clickImageTreeItem.FullName;
+
+            foreach (ImageTreeViewItem subItem in item.Items)
+            {
+                string subItemFullName = subItem.FullName;
+
+                if(clickImageTreeSub.Equals(subItemFullName))
+                {
+                    return subItem;
+                }
+
+                ImageTreeViewItem foundItem = FindImageTreeViewItemSub(subItem, clickImageTreeItem);
+
+                if (foundItem != null)
+                {
+                    return foundItem;
+                }
+            }
+
+
+            return null;
+        }
+
+
+        private void EmptyImage(TreeView directoryView,ImageTreeViewItem clickImageTreeItem)
+        {
+
+            clickImageTreeItem.IsBookMarkSelected = false;
+            clickImageTreeItem.BookMarkImageSource = _directoryManager.BookMarkEmptyStarImage();
+
+            if(clickImageTreeItem.Items.Count != 0) 
+            {
+                foreach(var item in clickImageTreeItem.Items)
+                {
+                    ImageTreeViewItem imageTreeViewItem = item as ImageTreeViewItem;
+                    EmptyImage(directoryView, imageTreeViewItem);
+                }
+            }
+        }
+
+
+        /// <summary>
+        /// 파일탐색기에서 즐겨찾기 이미지를 변경한다. 
+        /// </summary>
+        /// <param name="clickImageTreeItem"></param>
+        /// <param name="fullStartImage"></param>
+        private void checkFullImage(ImageTreeViewItem clickImageTreeItem, ImageSource fullStartImage)
+        {
+            try
+            {
+                if (clickImageTreeItem == null)
+                    return;
+
+                foreach (ImageTreeViewItem item in clickImageTreeItem.Items)
+                {
+                    item.IsBookMarkSelected = true;
+                    item.BookMarkImageSource = fullStartImage;
+
+
+                    checkFullImage(item, fullStartImage);
+                }
+            } catch (Exception e)
+            {
+                log.LogWrite(e);
+            }
+            
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="image"></param>
+        /// <returns></returns>
+        private ImageTreeViewItem getParent(Image image)
+        {
+            if (image != null)
+            {
+                object parent = image.Parent;
+
+                while (parent != null && !(parent is ImageTreeViewItem))
+                {
+                    if (parent is FrameworkElement element)
+                    {
+                        parent = element.Parent; // 다음 상위 요소로 이동
+                    }
+                    else
+                    {
+                        parent = null;
+                    }
+                }
+
+                return parent as ImageTreeViewItem;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// 즐겨찾기에서 
+        /// </summary>
+        /// <param name="clickImageTreeItem"></param>
+        private void RemoveBookMark(TreeView treeView, ImageTreeViewItem clickImageTreeItem)
+        {
+            foreach (ImageTreeViewItem item in treeView.Items)
+            {
+                if (RemoveItemFromChildren(item, clickImageTreeItem))
+                    break;  
+            }
+        }
+
+        private bool RemoveItemFromChildren(ImageTreeViewItem parentItem, ImageTreeViewItem targetItem)
+        {
+            for (int i = 0; i < parentItem.Items.Count; i++)
+            {
+                ImageTreeViewItem childItem = (ImageTreeViewItem)parentItem.Items[i];
+
+                if (childItem.FullName.Equals(targetItem.FullName)) 
+                {
+                    parentItem.Items.RemoveAt(i);
+                    return true;  
+                }
+
+                
+                if (RemoveItemFromChildren(childItem, targetItem))
+                    return true;
+            }
+
+            return false;  
+        }
+
+
+
+        #endregion
+
+
 
         #region 전체화면 이벤트
 
@@ -734,16 +652,92 @@ namespace croquis
         #endregion
 
 
+        #region 탐색기 테스트 
+        
+        
+        /// <summary>
+        /// 초기화
+        /// </summary>
+        public void DisplayVisibility()
+        {
+            if(fileSearch.Visibility == Visibility.Visible)
+            {
+                Brush backgroundColor = new BrushConverter().ConvertFrom("#404040") as Brush ;
+                DirectoryView.Background = backgroundColor;
+                fileSearch.Background = backgroundColor;
+            }
+
+            fileSearch.MouseDown += MenuClickEvent;
+            bookMark.MouseDown += MenuClickEvent;
+
+        }
+
+        public void MenuClickEvent(object sender, MouseEventArgs e)
+        {
+           
+
+            try
+            {
+                Run target = e.Source as Run;
+                if(target == null) { return; };
+                if (target.Text.Equals("탐색기"))
+                {
+                    Brush backgroundColor = new BrushConverter().ConvertFrom("#404040") as Brush;
+                    Brush backgroundColor2 = new BrushConverter().ConvertFrom("#262626") as Brush;
+                    if (DirectoryView.Visibility == Visibility.Visible)
+                    {
+
+                    }
+
+                    if (DirectoryView.Visibility == Visibility.Hidden)
+                    {
+                        DirectoryView.Background = backgroundColor;
+                        fileSearch.Background = backgroundColor;
+
+                        bookMark.Background = backgroundColor2;
+                        bookMarkView.Background = backgroundColor2;
+
+                        DirectoryView.Visibility = Visibility.Visible;
+                        bookMarkView.Visibility = Visibility.Hidden;
+                    }
+
+                }
+
+                if (target.Text.Equals("즐겨찾기"))
+                {
+                    Brush backgroundColor = new BrushConverter().ConvertFrom("#404040") as Brush;
+                    Brush backgroundColor2 = new BrushConverter().ConvertFrom("#262626") as Brush;
+                    if (bookMark.Visibility == Visibility.Visible)
+                    {
+
+                    }
+
+                    if (bookMarkView.Visibility == Visibility.Hidden)
+                    {
+                        bookMark.Background = backgroundColor;
+                        bookMarkView.Background = backgroundColor;
+
+                        DirectoryView.Background = backgroundColor2;
+                        fileSearch.Background = backgroundColor2;
+
+                        DirectoryView.Visibility = Visibility.Hidden;
+                        bookMarkView.Visibility = Visibility.Visible;
+                    }
+                }
+            } 
+            catch (NullReferenceException exception)
+            {
+                log.LogWrite(exception);
+            }
+
+        }
+
+        #endregion
+
+        #region 
 
 
-
-
-
-
-
-
-
-
+        #endregion
 
 
 
@@ -780,7 +774,7 @@ namespace croquis
         /// <returns></returns>
         private ImageSource GetIcomImage(string path)
         {
-            IntPtr hImgSmall; //system image list 
+            IntPtr hImgSmall; //system Image list 
             IntPtr hImgLarge;
             string Fname;
             SHFILEINFO shinfo = new SHFILEINFO();
@@ -872,12 +866,12 @@ namespace croquis
                 int rows = (imageCount / columns) + 1;
 
                 // ListBox에 DataContext 설정
-                PictureViewer.DataContext = new PictureBoxRowCols(rows, columns);
+                PictureViewer.DataContext = new PreviewGridSize(rows, columns);
 
                 // 파일이 존재하면 미리보기 이미지 로드 및 표시
                 if (fileInfos.Length != 0)
                 {
-                    ShowPreviewImages(fileInfos);
+                    DisplayImagePreviewsFromFiles(fileInfos);
                 }
                     
                 e.Handled = true;
@@ -891,10 +885,10 @@ namespace croquis
         }
 
         /// <summary>
-        /// 이미지 미리보기를 표시하는 메서드 
+        /// 지정된 파일 정보 배열에서 이미지 파일을 필터링하고, 해당 이미지를 UI에 미리보기로 표시합니다.
         /// </summary>
-        /// <param name="fileInfos">파일 정보 배열</param>
-        private async void ShowPreviewImages(FileInfo[] fileInfos)
+        /// <param name="fileInfos">미리보기를 원하는 파일의 정보 배열</param>
+        private async void DisplayImagePreviewsFromFiles(FileInfo[] fileInfos)
         {
             await Task.Run(() =>
             {
@@ -920,15 +914,6 @@ namespace croquis
 
 
                 }
-
-                //foreach (FileInfo file in fileInfos)
-                //{
-                //    if (!_imageManager.IsImageExtension(file.FullName))
-                //    {
-                //        continue;
-                //    }
-                //    DisplayImageOnUIThread(file.FullName);
-                //}
 
             });
 
@@ -1135,75 +1120,71 @@ namespace croquis
         /// <param name="e">크기 변경 관련 이벤트 인수</param>
         private void WinFormResizeEvent(object sender, SizeChangedEventArgs e)
         {
-            // 현재 창 크기와 기존 크기와의 차이를 계산하여 크기 조절에 활용
-            ControlSize tempsize = MainFormSize.minus(MainWin.Width, MainWin.Height);
-            double _tempH = tempsize.height / 2;
-
-            if(fullDisplay.IsChecked == true)
+            try
             {
-                return;
-            }
-
-
-            if (tempsize.height != 0 && tempsize.width != 0)
-            {
-                // 창이 최대화되지 않은 상태에서는 FileGrid와 PreViewGrid의 높이를 조절
-                FileGrid.Height = FileGridSize.plusHeight(_tempH);
-                PreViewGrid.Height = PreViewSize.plusHeight(_tempH);
-
-                // ContentView의 너비 조절
-                ContentView.Width = ContenViewtSize.plusWidth(tempsize.width - 2);
-            }
-
-
-            
-
-            if ((WindowState == WindowState.Maximized) || tempsize.height == 0 && tempsize.width == 0)
-            {
-                TempCroquisSize = new ControlResize(croquisView.Width, croquisView.RenderSize.Height );
+                TempCroquisSize = new ControlResize(croquisView.Width, croquisView.RenderSize.Height);
                 TempViewSize = new ControlResize(view.Width, view.RenderSize.Height);
                 TempContentSize = new ControlResize(ContentView.Width, ContentView.Height);
                 TempOptionSize = new ControlResize(OptionView.Width, OptionView.Height);
                 TempFileSize = new ControlResize(FileGrid.Width, FileGrid.Height);
                 TempPreViewSize = new ControlResize(PreViewGrid.Width, PreViewGrid.Height);
 
-                
+                // 현재 창 크기와 기존 크기와의 차이를 계산하여 크기 조절에 활용
+                ControlSize tempsize = MainFormSize.minus(MainWin.Width, MainWin.Height);
+                double _tempH = tempsize.height / 2;
 
-                // 창이 최대화된 상태에서는 FileGrid와 PreViewGrid의 높이를 조절
-                double MaxWindow_H = MainGrid.ActualHeight / 2;
+                if (fullDisplay.IsChecked == true)
+                {
+                    return;
+                }
 
 
-                //FileGrid.Height = MaxWindow_H - 3; // 상단 여백 값 조정
-                //PreViewGrid.Height = MaxWindow_H - 3; // 하단 여백 값 조정
+                if (tempsize.height != 0 && tempsize.width != 0)
+                {
+                    // 창이 최대화되지 않은 상태에서는 FileGrid와 PreViewGrid의 높이를 조절
+                    FileGrid.Height = FileGridSize.plusHeight(_tempH);
+                    PreViewGrid.Height = PreViewSize.plusHeight(_tempH);
 
-                // ContentView의 너비 조절
-                double temp = MainWin.RenderSize.Width - view.Width - croquisView.Width - OptionView.Width - ContentView.Width;
-                ContentView.Width = (ContentView.Width + temp) - 26;
-            } else
+                    // ContentView의 너비 조절
+                    ContentView.Width = ContenViewtSize.plusWidth(tempsize.width - 2);
+                }
+
+
+                if ((WindowState == WindowState.Maximized) || tempsize.height == 0 && tempsize.width == 0)
+                {
+                    // 창이 최대화된 상태에서는 FileGrid와 PreViewGrid의 높이를 조절
+                    double MaxWindow_H = MainGrid.ActualHeight / 2;
+
+
+                    //FileGrid.Height = MaxWindow_H - 3; // 상단 여백 값 조정
+                    //PreViewGrid.Height = MaxWindow_H - 3; // 하단 여백 값 조정
+
+                    // ContentView의 너비 조절
+                    double temp = MainWin.RenderSize.Width - view.Width - croquisView.Width - OptionView.Width - ContentView.Width;
+                    ContentView.Width = (ContentView.Width + temp) - 26;
+                }
+                else
+                {
+
+                    croquisView.Width = TempCroquisSize.default_width;
+                    croquisView.Height = TempCroquisSize.default_height;
+
+                    view.Width = TempViewSize.default_width;
+                    view.Height = TempViewSize.default_height;
+
+
+
+                    ContentView.Width = TempContentSize.default_width;
+                    ContentView.Height = TempContentSize.default_height;
+
+                    OptionView.Width = TempOptionSize.default_width;
+                    OptionView.Height = TempOptionSize.default_height;
+                }
+            } catch (NullReferenceException ex)
             {
-                
-                croquisView.Width = TempCroquisSize.default_width;
-                croquisView.Height = TempCroquisSize.default_height;
-
-                view.Width = TempViewSize.default_width;
-                view.Height = TempViewSize.default_height;
-
-                
-
-                ContentView.Width = TempContentSize.default_width;
-                ContentView.Height = TempContentSize.default_height;
-
-                OptionView.Width = TempOptionSize.default_width;
-                OptionView.Height = TempOptionSize.default_height;
+                log.LogWrite(ex);
             }
-
-
             
-
-
-
-
-
         }
 
 
@@ -1217,7 +1198,7 @@ namespace croquis
             int col = ((int)e.NewSize.Width) / ImageSize;
             int ItemCount = PictureViewer.Items.Count;
             int row = (ItemCount / col) + 1;
-            PictureViewer.DataContext = new PictureBoxRowCols(row, col);
+            PictureViewer.DataContext = new PreviewGridSize(row, col);
         }
 
 
@@ -1386,6 +1367,7 @@ namespace croquis
                 }
             }
         }
+
         #endregion
 
         

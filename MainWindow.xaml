@@ -7,8 +7,11 @@
         xmlns:local="clr-namespace:croquis"
         mc:Ignorable="d" 
        
-        Title="croquis" Height="900" Width="1720" MinHeight="900" MinWidth="1720" Background="#262626" Loaded="WindowLoadEvent" Closing="MainWin_Closing"
-        >
+        Title="croquis" Height="900" Width="1720" MinHeight="900" MinWidth="1720" Background="#262626" Loaded="WindowLoadEvent" Closing="MainWin_Closing">
+
+    
+    
+    
     <Grid x:Name="MainGrid" Background="#262626" >
 
         <Border x:Name="croquisView" BorderBrush="#404040" BorderThickness="1" Margin="2,2,0,2" HorizontalAlignment="Left" Width="220"  >
@@ -32,32 +35,49 @@
         <Grid x:Name="view" Margin="224,2,0,2" HorizontalAlignment="Left" Width="320" >
 
             <Border x:Name="FileGrid"  BorderBrush="#404040" BorderThickness="1" Height="400" VerticalAlignment="Top">
-                <Grid x:Name="fileSearchBox"  >
+                <Grid x:Name="fileSearchBox">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="17*"/>
-                        <RowDefinition Height="197*"/>
-
-
+                        <RowDefinition x:Name="FileMenu"    Height="20"/>
+                        <RowDefinition x:Name="FileViewer"  Height="380*"/>
                     </Grid.RowDefinitions>
-                    <TextBlock x:Name="fileSearch" Margin="10,0,0,0" FontSize="15" HorizontalAlignment="Left" Width="75" Height="20" VerticalAlignment="Center" Foreground="#FFD8D8D8"><Run Text="파일탐색기" Foreground="#FFD8D8D8"/></TextBlock>
 
-                    <!--<Button x:Name="fileLoad" Margin="294,8,10,0" Click="onClick" ClickMode="Press"  RenderTransformOrigin="-1.217,0.474" VerticalAlignment="Top" Panel.ZIndex="1" Opacity="0.25" HorizontalAlignment="Stretch" Height="21"/> -->
-                    <!--                    <Image Source="/Resources/plus.png" Margin="293,11,14,0" Height="15" VerticalAlignment="Top"   /> -->
-                    <TreeView x:Name="DirectoryView" Grid.Row="1" AllowDrop="True">
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition x:Name="Search"   Width="60" MinWidth="60" />
+                            <ColumnDefinition x:Name="BookMark" Width="60" MinWidth="60" />
+                        </Grid.ColumnDefinitions>
 
-                    </TreeView>
+                        <TextBlock Grid.Column="0" Foreground="#FFD8D8D8" x:Name="fileSearch" Height="20"  FontSize="14" VerticalAlignment="Center" TextAlignment="Center" FontWeight="Medium"><Run Foreground="#FFD8D8D8" Text="탐색기"/></TextBlock>
+                        <TextBlock Grid.Column="1" Foreground="#FFD8D8D8" x:Name="bookMark"   Height="20"   FontSize="14" VerticalAlignment="Center" TextAlignment="Center" FontWeight="Medium"><Run Foreground="#FFD8D8D8" Text="즐겨찾기"/></TextBlock>
+                    </Grid>
+
+                    <TreeView x:Name="DirectoryView" Visibility="Visible" AllowDrop="True" Grid.Row="1"/>
+                    <TreeView x:Name="bookMarkView" Visibility="Hidden" AllowDrop="True" Grid.Row="1"/>
                 </Grid>
+
+
             </Border>
 
             <Border x:Name="PreViewGrid"  BorderBrush="#404040" BorderThickness="1" SizeChanged="PreViewGridResizeEvent" Margin="0,402,0,0">
                 <Grid x:Name="preViewBox">
-
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="3*"/>
+                        <RowDefinition Height="30"/>
                         <RowDefinition Height="65*"/>
                     </Grid.RowDefinitions>
-                    <TextBlock x:Name="preview" Margin="0,0,165,0" FontSize="15" Height="22" VerticalAlignment="Top" Foreground="#FFD8D8D8" Grid.RowSpan="2" ><Run Language="ko-kr" Text="미리보기"/><LineBreak/><Run/></TextBlock>
-                    <ListBox x:Name="PictureViewer" AllowDrop="True" Background="#FF494949" Margin="0,21,0,0" Grid.RowSpan="2" >
+                    <TextBlock Grid.Row="0" x:Name="preview" Height="30" Width="55" FontSize="14"  VerticalAlignment="Center" HorizontalAlignment="Left" Margin="4" Foreground="#FFD8D8D8" TextAlignment="Center" ><Run Language="ko-kr" Text="미리보기"/><Run/></TextBlock>
+
+                    <ComboBox Grid.Row="0" x:Name="sortList" Height="30" Width="150" HorizontalAlignment="Right" Background="#FF494949" FontSize="12" >
+                        
+                        
+                        <ComboBoxItem Name="FileNameSort" FontSize="12" IsSelected="True">파일 이름 정렬</ComboBoxItem>
+                        
+                    </ComboBox>
+
+
+
+
+
+                    <ListBox Grid.Row="1" x:Name="PictureViewer" AllowDrop="True" Background="#FF494949" >
                         <ListBox.ItemsPanel>
                             <ItemsPanelTemplate x:Name="picBoxTemplate">
                                 <UniformGrid Rows="{Binding Rows}" Columns="{Binding Cols}"/>
@@ -66,10 +86,11 @@
                     </ListBox>
 
 
+
                 </Grid>
             </Border>
         </Grid>
-
+        
         <GridSplitter x:Name="view_contentSplitter" Width="2" HorizontalAlignment="Left" Margin="544,0,0,0" Background="#00000000" PreviewMouseDown="SplitterMouseDownEvent" PreviewMouseUp="SplitterMouseupEvent"  />
 
         <Border x:Name="ContentView" BorderBrush="#404040" BorderThickness="1" Margin="0,2,200,2" HorizontalAlignment="Right" Width="958">
@@ -126,7 +147,13 @@
                 <CheckBox x:Name="fullDisplay" IsChecked="False" Content="전체화면" VerticalAlignment="Top" 
                     Margin="12,295,0,0" Width="70"/>
 
+                <CheckBox x:Name="TopMost" IsChecked="False" Content="창 맨위로" VerticalAlignment="Top" 
+                          Checked="TopMost_Checked"
+                          Unchecked="TopMost_Unchecked"
+                    Margin="12,327,0,0" Width="70"/>
+
                 <Button x:Name="start" Content="시작" Margin="6,0,6,28"  VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Height="40" PreviewMouseLeftButtonDown="start_MouseDown" Foreground="#FFD8D8D8" Background="#FF737373" />
+                
 
             </Grid>
         </Border>

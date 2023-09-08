@@ -5,12 +5,17 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-public class Log
+public class ExceptionLogger
 {
     static string DirPath = Environment.CurrentDirectory + @"\Log";
    
     static string temp;
-
+    public void LogWrite(Exception e)
+    {
+        LogWrite(e.Message);
+        LogWrite(e.Source);
+        LogWrite(e.StackTrace);
+    }
     public void LogWrite(string str)
     {
         string FilePath = DirPath + "\\Log_" + DateTime.Today.ToString("yyyyMMdd") + ".log";

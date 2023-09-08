@@ -17,12 +17,12 @@ public class ImageManager
     public int ImageSize { get; set; } = 129;
     public int PreviewGridWidth { get; set; }
 
-    private Log log;
+    private ExceptionLogger log;
 
     public MouseButtonEventHandler ImageClick { get; set; }
 
 
-    public ImageManager(Log log)
+    public ImageManager(ExceptionLogger log)
 	{
         this.log = log;
 	}
@@ -186,7 +186,7 @@ public class ImageManager
         int rows = (imageCount / columns) + 1;
 
         // ListBox에 DataContext 설정
-        pictureBox.DataContext = new PictureBoxRowCols(rows, columns);
+        pictureBox.DataContext = new PreviewGridSize(rows, columns);
 
         foreach (FileInfo file in directory.GetFiles())
         {
