@@ -1,8 +1,8 @@
 ﻿using System.Windows;
 
-namespace initializationControl
+namespace croquis.Entity
 {
- 
+
 
 
     public class ControlSize
@@ -14,27 +14,27 @@ namespace initializationControl
 
     public class ControlResize
     {
-        
+
 
         public double DefaultWidth { get; set; }
         public double DefaultHeight { get; set; }
         public Thickness DefaultLocation { get; set; }
-        
+
 
         public ControlResize() { }
 
-        public ControlResize(double defaultWidth, double defaultHeight,Thickness thickness)
+        public ControlResize(double defaultWidth, double defaultHeight, Thickness thickness)
         {
-            this.DefaultWidth = defaultWidth;
-            this.DefaultHeight = defaultHeight;
-            this.DefaultLocation = thickness;
+            DefaultWidth = defaultWidth;
+            DefaultHeight = defaultHeight;
+            DefaultLocation = thickness;
         }
 
 
         public ControlResize(double defaultWidth, double defaultHeight)
         {
-            this.DefaultWidth = defaultWidth;
-            this.DefaultHeight = defaultHeight;
+            DefaultWidth = defaultWidth;
+            DefaultHeight = defaultHeight;
         }
 
         public ControlSize minus(double width, double height)

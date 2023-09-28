@@ -1,4 +1,4 @@
-﻿using initializationControl;
+﻿using croquis.Entity;
 using ModernWpf.Controls;
 using OpenCvSharp;
 using System;

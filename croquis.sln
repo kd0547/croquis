@@ -5,41 +5,6 @@ VisualStudioVersion = 17.5.33530.505
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "croquis", "croquis.csproj", "{37614EE7-F723-4B37-8E2C-BBE4E5148C8A}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Model", "Model", "{AF90B484-B5C8-49AB-B43A-C01E7A787D34}"
-	ProjectSection(SolutionItems) = preProject
-		DirectoryManager.cs = DirectoryManager.cs
-		ExceptionLogger.cs = ExceptionLogger.cs
-		FileWatcher.cs = FileWatcher.cs
-		ImageCache.cs = ImageCache.cs
-		ImageCacheRepository.cs = ImageCacheRepository.cs
-		ImageStream.cs = ImageStream.cs
-		ResourceImage.cs = ResourceImage.cs
-		SQliteManager.cs = SQliteManager.cs
-		UserSettingsManager.cs = UserSettingsManager.cs
-		win32.cs = win32.cs
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "View", "View", "{5129C93B-F3BB-47EA-8B79-D2EB49EEE19D}"
-	ProjectSection(SolutionItems) = preProject
-		ImageBlock.cs = ImageBlock.cs
-		ImageTreeViewItem.cs = ImageTreeViewItem.cs
-		MainWindow.xaml = MainWindow.xaml
-		MainWindow.xaml.cs = MainWindow.xaml.cs
-		PropertiesMenu.cs = PropertiesMenu.cs
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ViewModel", "ViewModel", "{AD0F53DF-C262-4461-A7F1-AA72E8CA5274}"
-	ProjectSection(SolutionItems) = preProject
-		Alarm.cs = Alarm.cs
-		CroquisPlay.cs = CroquisPlay.cs
-		FileImage.cs = FileImage.cs
-		ImageBlock.cs = ImageBlock.cs
-		ImageTreeViewItem.cs = ImageTreeViewItem.cs
-		ImageTreeViewItemFactory.cs = ImageTreeViewItemFactory.cs
-		initializationControl.cs = initializationControl.cs
-		MainViewModel.cs = MainViewModel.cs
-	EndProjectSection
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
