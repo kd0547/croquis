@@ -7,159 +7,400 @@
         xmlns:local="clr-namespace:croquis"
         mc:Ignorable="d" 
        
-        Title="croquis" Height="900" Width="1720" MinHeight="900" MinWidth="1720" Background="#262626" Loaded="WindowLoadEvent" Closing="MainWin_Closing">
+        Title="croquis" Height="900" Width="1720" Background="Transparent" 
+        
+        
+        Loaded="WindowLoadEvent" 
+        Keyboard.KeyDown="WindowChangeEvent"
+        Closing="MainWin_Closing" 
+        
+        >
+    <!-- 제목표시줄 커스터마이징 -->
+    <!-- MouseLeftButtonDown="Window_MouseLeftButtonDown" MouseMove="Window_MouseMove" -->
 
-    
-    
-    
-    <Grid x:Name="MainGrid" Background="#262626" >
+    <Grid x:Name="MainGrid" Background="#262626" Margin="0" >
+        <Grid.RowDefinitions>
+            <!-- <RowDefinition Height="25" /> -->
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
-        <Border x:Name="croquisView" BorderBrush="#404040" BorderThickness="1" Margin="2,2,0,2" HorizontalAlignment="Left" Width="220"  >
-            <Grid x:Name="CroquisGrid" >
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="898*" />
-                </Grid.RowDefinitions>
+        <!-- 현재는 메뉴바 사용 예정 없음 -->
+        <Border x:Name="SubjectBorder" BorderBrush="#262626" BorderThickness="1"  CornerRadius="10,10,0,0" Visibility="Collapsed" >
+            <Grid x:Name="SubjectBar" MouseLeftButtonDown="WindowMove_Event" Grid.Row="0" Height="20" IsHitTestVisible="True" Background="Transparent">
 
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="200"></ColumnDefinition>
+                    <ColumnDefinition Width="149*"></ColumnDefinition>
+                    <ColumnDefinition Width="90"></ColumnDefinition>
+                </Grid.ColumnDefinitions>
 
-                <TreeView x:Name="croquisTreeView" AllowDrop="True">
+                <Border Grid.Column="0" Height="20"  >
+                    <DockPanel Height="20" >
+                        <!-- 메뉴 추가 -->
 
-                </TreeView>
+                        <Menu x:Name="SubjectMenu" DockPanel.Dock="Top" Height="20" Width="200" >
+                            <MenuItem  Header="창" Height="20" Foreground="#FFD8D8D8" Width="40" Padding="0" TextBlock.TextAlignment="Center" VerticalAlignment="Center" HorizontalAlignment="Left" >
+
+                                <MenuItem Header="크로키 목록" Foreground="#FFD8D8D8" Height="20" Width="80" Padding="0" TextBlock.TextAlignment="Left"  />
+                                <MenuItem Header="탐색기 " Height="20" Width="80" Padding="0" TextBlock.TextAlignment="Left" />
+                                <MenuItem Header="옵션" Height="20" Width="80" Padding="0" TextBlock.TextAlignment="Left" />
+
+                            </MenuItem>
+                        </Menu>
+                    </DockPanel>
+                </Border>
+
+                <!-- 커스텀 제목 바 -->
+                <Border Grid.Column="2"  CornerRadius="0" Visibility="Collapsed" >
+                    <StackPanel Width="90"   VerticalAlignment="Center" Orientation="Horizontal"  HorizontalAlignment="Right">
+                        <Button Width="30" Height="20" Click="MinimizeButton_Click" Foreground="#FFD8D8D8" Background="Transparent" Padding="0">
+                            <TextBlock Text="─" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+
+                        <Button Width="30" Height="20" Click="MaximizeButton_Click" Foreground="#FFD8D8D8" Background="Transparent" Padding="0">
+                            <TextBlock Text="□" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                        <Button Width="30" Height="20" Click="CloseButton_Click" Foreground="#FFD8D8D8" Background="Transparent" Padding="0" >
+                            <TextBlock Text="X" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </StackPanel>
+                </Border>
 
 
             </Grid>
 
         </Border>
+        <!-- 현재는 메뉴바 사용 예정 없음 -->
 
-        <GridSplitter Width="2" HorizontalAlignment="Left" Margin="222,0,0,0" Background="#00000000" />
 
-        <Grid x:Name="view" Margin="224,2,0,2" HorizontalAlignment="Left" Width="320" >
-
-            <Border x:Name="FileGrid"  BorderBrush="#404040" BorderThickness="1" Height="400" VerticalAlignment="Top">
-                <Grid x:Name="fileSearchBox">
+        <Grid Grid.Row="1" x:Name="MainContent" Margin="2,2,2,2" >
+            <Border x:Name="CroquisBorder" BorderBrush="#404040" BorderThickness="1" HorizontalAlignment="Left" Width="220"  >
+                <Grid x:Name="CroquisGrid" >
                     <Grid.RowDefinitions>
-                        <RowDefinition x:Name="FileMenu"    Height="20"/>
-                        <RowDefinition x:Name="FileViewer"  Height="380*"/>
+                        <RowDefinition Height="20" />
+                        <RowDefinition Height="898*" />
                     </Grid.RowDefinitions>
 
-                    <Grid Grid.Row="0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition x:Name="Search"   Width="60" MinWidth="60" />
-                            <ColumnDefinition x:Name="BookMark" Width="60" MinWidth="60" />
-                        </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Row="0" Foreground="#FFD8D8D8" x:Name="croquisList" Height="20" Margin="4"  FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Left" TextAlignment="Center" FontWeight="Medium"><Run Foreground="#FFD8D8D8" Text="크로키 목록"/></TextBlock>
 
-                        <TextBlock Grid.Column="0" Foreground="#FFD8D8D8" x:Name="fileSearch" Height="20"  FontSize="14" VerticalAlignment="Center" TextAlignment="Center" FontWeight="Medium"><Run Foreground="#FFD8D8D8" Text="탐색기"/></TextBlock>
-                        <TextBlock Grid.Column="1" Foreground="#FFD8D8D8" x:Name="bookMark"   Height="20"   FontSize="14" VerticalAlignment="Center" TextAlignment="Center" FontWeight="Medium"><Run Foreground="#FFD8D8D8" Text="즐겨찾기"/></TextBlock>
+                    <TreeView Grid.Row="1" x:Name="CroquisTreeView" AllowDrop="True">
+
+
+                        <TreeView.ContextMenu>
+                            <ContextMenu x:Name="CroquisTreeViewContextMenu">
+
+                                <MenuItem Header="시계 방향으로 90도 회전 " FontSize="12" PreviewMouseLeftButtonDown="RotateClockwise90Degrees" />
+                                <MenuItem Header="시계 반대 방향으로 90도 회전" FontSize="12" PreviewMouseLeftButtonDown="RotateCounterClockwise90Degrees" />
+                                <Separator />
+                                <MenuItem Header="좌우반전" FontSize="12" PreviewMouseLeftButtonDown="ConvertToFlipEvent" />
+                                <Separator />
+                                <MenuItem Header="이미지 흑백전환" FontSize="12" PreviewMouseLeftButtonDown="ConvertToGrayscaleEvent" />
+                                <Separator />
+                                <MenuItem Foreground="Red" Header="삭제" FontSize="12"  PreviewMouseLeftButtonDown="RemoveCroquisItem" />
+
+                            </ContextMenu>
+                        </TreeView.ContextMenu>
+                    </TreeView>
+
+
+                </Grid>
+
+            </Border>
+
+            <GridSplitter x:Name="CroquisSplitter" Width="2" HorizontalAlignment="Left" Margin="220,0,0,0" Background="#00000000" />
+
+            <Grid x:Name="FileViewGrid" Margin="222,0,0,0" HorizontalAlignment="Left" Width="320" >
+
+                <Border x:Name="FileSearchBorder"  BorderBrush="#404040" BorderThickness="1" Height="400" VerticalAlignment="Top">
+                    <Grid x:Name="fileSearchBox">
+                        <Grid.RowDefinitions>
+                            <RowDefinition x:Name="FileMenu"    Height="20"/>
+                            <RowDefinition x:Name="FileViewer"  Height="380*"/>
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition x:Name="Search"   Width="60" MinWidth="60" />
+                                <ColumnDefinition x:Name="BookMark" Width="60" MinWidth="60" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0" Foreground="#FFD8D8D8" x:Name="fileSearch" Height="20"  FontSize="14" VerticalAlignment="Center" TextAlignment="Center" FontWeight="Medium"><Run Foreground="#FFD8D8D8" Text="탐색기"/></TextBlock>
+                            <TextBlock Grid.Column="1" Foreground="#FFD8D8D8" x:Name="bookMark"   Height="20"   FontSize="14" VerticalAlignment="Center" TextAlignment="Center" FontWeight="Medium"><Run Foreground="#FFD8D8D8" Text="즐겨찾기"/></TextBlock>
+                        </Grid>
+
+                        <TreeView x:Name="DirectoryView" Visibility="Visible" AllowDrop="True" Grid.Row="1"/>
+                        <TreeView x:Name="BookMarkView" Visibility="Hidden" AllowDrop="True" Grid.Row="1"/>
                     </Grid>
 
-                    <TreeView x:Name="DirectoryView" Visibility="Visible" AllowDrop="True" Grid.Row="1"/>
-                    <TreeView x:Name="bookMarkView" Visibility="Hidden" AllowDrop="True" Grid.Row="1"/>
-                </Grid>
+
+                </Border>
+
+                <Border x:Name="PreviewBorder"  BorderBrush="#404040" BorderThickness="1" SizeChanged="PreViewGridResizeEvent" Margin="0,402,0,0">
+                    <Grid x:Name="preViewBox">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="30"/>
+                            <RowDefinition Height="65*"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" x:Name="preview" Height="30" Width="55" FontSize="14"  VerticalAlignment="Center" HorizontalAlignment="Left" Margin="4" Foreground="#FFD8D8D8" TextAlignment="Center" ><Run Language="ko-kr" Text="미리보기"/><Run/></TextBlock>
+
+                        <ComboBox Grid.Row="0" x:Name="sortList" Height="30" Width="150" HorizontalAlignment="Right" Background="#FF494949" FontSize="12" >
+                            <ComboBoxItem Name="FileNameSort" FontSize="12" IsSelected="True">파일 이름 정렬</ComboBoxItem>
+
+                        </ComboBox>
 
 
-            </Border>
-
-            <Border x:Name="PreViewGrid"  BorderBrush="#404040" BorderThickness="1" SizeChanged="PreViewGridResizeEvent" Margin="0,402,0,0">
-                <Grid x:Name="preViewBox">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="30"/>
-                        <RowDefinition Height="65*"/>
-                    </Grid.RowDefinitions>
-                    <TextBlock Grid.Row="0" x:Name="preview" Height="30" Width="55" FontSize="14"  VerticalAlignment="Center" HorizontalAlignment="Left" Margin="4" Foreground="#FFD8D8D8" TextAlignment="Center" ><Run Language="ko-kr" Text="미리보기"/><Run/></TextBlock>
-
-                    <ComboBox Grid.Row="0" x:Name="sortList" Height="30" Width="150" HorizontalAlignment="Right" Background="#FF494949" FontSize="12" >
-                        
-                        
-                        <ComboBoxItem Name="FileNameSort" FontSize="12" IsSelected="True">파일 이름 정렬</ComboBoxItem>
-                        
-                    </ComboBox>
-
-
-
-
-
-                    <ListBox Grid.Row="1" x:Name="PictureViewer" AllowDrop="True" Background="#FF494949" >
-                        <ListBox.ItemsPanel>
-                            <ItemsPanelTemplate x:Name="picBoxTemplate">
-                                <UniformGrid Rows="{Binding Rows}" Columns="{Binding Cols}"/>
-                            </ItemsPanelTemplate>
-                        </ListBox.ItemsPanel>
-                    </ListBox>
+                        <ListBox Grid.Row="1" x:Name="PictureViewer" AllowDrop="True" Background="#FF494949" >
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate x:Name="picBoxTemplate">
+                                    <UniformGrid Rows="{Binding Rows}" Columns="{Binding Cols}"/>
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                        </ListBox>
 
 
 
-                </Grid>
-            </Border>
-        </Grid>
-        
-        <GridSplitter x:Name="view_contentSplitter" Width="2" HorizontalAlignment="Left" Margin="544,0,0,0" Background="#00000000" PreviewMouseDown="SplitterMouseDownEvent" PreviewMouseUp="SplitterMouseupEvent"  />
-
-        <Border x:Name="ContentView" BorderBrush="#404040" BorderThickness="1" Margin="0,2,200,2" HorizontalAlignment="Right" Width="958">
-            <Grid x:Name="content" >
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="348*"/>
-                </Grid.RowDefinitions>
-                <Image x:Name="mainContent" Grid.Row="0"/>
+                    </Grid>
+                </Border>
             </Grid>
 
-        </Border>
+            <GridSplitter x:Name="ViewContentSplitter" Width="2" HorizontalAlignment="Left" Margin="542,0,0,0" Background="#00000000" PreviewMouseDown="SplitterMouseDownEvent" PreviewMouseUp="SplitterMouseupEvent"  />
 
-        <Border x:Name="OptionView" BorderBrush="#404040" BorderThickness="1" Margin="0,2,2,2" HorizontalAlignment="Right" Width="196" >
+            <Border x:Name="ContentBorder" BorderBrush="#404040" BorderThickness="1" Margin="0,0,198,0" HorizontalAlignment="Right" Width="958">
+                <Grid x:Name="content" >
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Image x:Name="mainContent" Grid.Row="0"/>
+                </Grid>
 
-            <Grid x:Name="option" Background="#33000000">
+            </Border>
 
-                <TextBlock x:Name="page" 
+            <Border x:Name="OptionBorder" BorderBrush="#404040" BorderThickness="1" HorizontalAlignment="Right" Width="196" >
+
+                <Grid x:Name="option" Background="#33000000">
+
+                    <TextBlock x:Name="page" 
                     Height="16"
                     VerticalAlignment="Top"  
-                    Margin="11,61,0,0" Foreground="#FFD8D8D8" HorizontalAlignment="Left" Width="185"><Run Text="출력 장수"/></TextBlock>
+                    Margin="11,61,0,0" Foreground="#FFD8D8D8" HorizontalAlignment="Left" Width="60"><Run Text="출력 장 수"/></TextBlock>
 
-                <TextBox x:Name="page_input" 
-                    TextWrapping="Wrap" Height="20"
-                    Text="30" 
-                    VerticalAlignment="Top" 
-                    Margin="11,82,0,0" HorizontalAlignment="Left" Width="172" />
+                    <!-- 출력 장 수  -->
+                    <TextBox x:Name="page_input" 
+                        MinWidth="0" MinHeight="0"
+                        TextWrapping="Wrap" Height="31"
+                        Text="0" FontSize="14"
+                                    VerticalAlignment="Top" 
+                                    VerticalContentAlignment="Center" 
+                                        HorizontalContentAlignment="Right"
+                                Margin="11,82,0,0" HorizontalAlignment="Left" Width="70">
+                        <TextBox.Template>
+                            <ControlTemplate TargetType="TextBox">
+                                <Border Background="#404040" CornerRadius="0" Padding="1">
+                                    <ScrollViewer x:Name="PART_ContentHost"/>
+                                </Border>
+                            </ControlTemplate>
+                        </TextBox.Template>
+                        <TextBox.Resources>
+                            <!-- 리소스를 추가하려면 여기에 정의 -->
+                        </TextBox.Resources>
+                    </TextBox>
 
 
-                <TextBlock x:Name="timer" 
+
+                    <TextBlock x:Name="timer" 
                        Text="타이머" Height="16"
                        VerticalAlignment="Top"
                       
-                       Margin="12,143,41,0" Foreground="#FFD8D8D8"  
-                       
-                        />
-                <TextBox x:Name="timerInput" 
-                     TextWrapping="Wrap" Height="20"
-                     Text="30" 
-                     VerticalAlignment="Top" 
-                     Margin="11,164,0,0" HorizontalAlignment="Left" Width="172" />
+                       Margin="12,143,0,0" Foreground="#FFD8D8D8" HorizontalAlignment="Left" Width="40" />
 
-                <TextBlock x:Name="refreshTimer" 
+
+                    <TextBox x:Name="IntervalHour" 
+                        MinWidth="0" MinHeight="0"
+                        TextWrapping="Wrap" Height="30"
+                        Text="0" FontSize="14"
+                                    VerticalAlignment="Top" 
+                                    VerticalContentAlignment="Center" 
+                                        HorizontalContentAlignment="Right"
+                                Margin="10,164,0,0" HorizontalAlignment="Left" Width="40">
+                        <TextBox.Template>
+                            <ControlTemplate TargetType="TextBox">
+                                <Border Background="#404040" CornerRadius="0" Padding="1">
+                                    <ScrollViewer x:Name="PART_ContentHost"/>
+                                </Border>
+                            </ControlTemplate>
+                        </TextBox.Template>
+                        <TextBox.Resources>
+                            <!-- 리소스를 추가하려면 여기에 정의 -->
+                        </TextBox.Resources>
+                    </TextBox>
+
+                    <TextBlock VerticalAlignment="Top" FontSize="20" Margin="60,164,0,0" Foreground="#FFD8D8D8" HorizontalAlignment="Left" Width="7"  ><Run Text=":"/></TextBlock>
+
+                    <TextBox x:Name="IntervalMinute" 
+                        MinWidth="0" MinHeight="0"
+                        TextWrapping="Wrap" Height="31"
+                        Text="0" FontSize="14"
+                                    VerticalAlignment="Top" 
+                                    VerticalContentAlignment="Center" 
+                                        HorizontalContentAlignment="Right"
+                                Margin="70,164,0,0" HorizontalAlignment="Left" Width="40">
+                        <TextBox.Template>
+                            <ControlTemplate TargetType="TextBox">
+                                <Border Background="#404040" CornerRadius="0" Padding="1">
+                                    <ScrollViewer x:Name="PART_ContentHost"/>
+                                </Border>
+                            </ControlTemplate>
+                        </TextBox.Template>
+                        <TextBox.Resources>
+                            <!-- 리소스를 추가하려면 여기에 정의 -->
+                        </TextBox.Resources>
+                    </TextBox>
+
+                    <TextBlock VerticalAlignment="Top" FontSize="20" Margin="120,164,0,0" Foreground="#FFD8D8D8" HorizontalAlignment="Left" Width="9"  ><Run Text=":"/></TextBlock>
+
+                    <TextBox x:Name="IntervalSecond" 
+                        MinWidth="0" MinHeight="0"
+                        TextWrapping="Wrap" Height="31"
+                        Text="30" FontSize="14"
+                                    VerticalAlignment="Top" 
+                                    VerticalContentAlignment="Center" 
+                                        HorizontalContentAlignment="Right"
+                                Margin="130,164,0,0" HorizontalAlignment="Left" Width="40">
+                        <TextBox.Template>
+                            <ControlTemplate TargetType="TextBox">
+                                <Border Background="#404040" CornerRadius="0" Padding="1">
+                                    <ScrollViewer x:Name="PART_ContentHost"/>
+                                </Border>
+                            </ControlTemplate>
+                        </TextBox.Template>
+                        <TextBox.Resources>
+                            <!-- 리소스를 추가하려면 여기에 정의 -->
+                        </TextBox.Resources>
+                    </TextBox>
+
+
+
+                    <TextBlock x:Name="refreshTimer" 
                        Text="휴식 시간" Height="16"
                        VerticalAlignment="Top"
                       
-                       Margin="11,223,27,0" Foreground="#FFD8D8D8" 
+                       Margin="11,223,0,0" Foreground="#FFD8D8D8" HorizontalAlignment="Left" Width="53" 
                        />
-                <TextBox x:Name="refreshTimerInput" 
-                     TextWrapping="Wrap" 
-                     Text="3" Height="20"
-                     VerticalAlignment="Top" 
-                     Margin="11,244,0,0" HorizontalAlignment="Left" Width="172"
-                     />
-                <CheckBox x:Name="fullDisplay" IsChecked="False" Content="전체화면" VerticalAlignment="Top" 
+
+                    <TextBlock VerticalAlignment="Top" FontSize="20"
+                       Margin="60,246,0,0" Foreground="#FFD8D8D8" HorizontalAlignment="Left" Width="7"  > :</TextBlock>
+
+                    <CheckBox x:Name="fullDisplay" IsChecked="False" Content="전체화면" VerticalAlignment="Top" 
+                              Focusable="False"
                     Margin="12,295,0,0" Width="70"/>
 
-                <CheckBox x:Name="TopMost" IsChecked="False" Content="창 맨위로" VerticalAlignment="Top" 
+                    <CheckBox x:Name="TopMost" IsChecked="False" Content="항상 맨 위" VerticalAlignment="Top" 
                           Checked="TopMost_Checked"
                           Unchecked="TopMost_Unchecked"
+                          Focusable="False"
                     Margin="12,327,0,0" Width="70"/>
 
-                <Button x:Name="start" Content="시작" Margin="6,0,6,28"  VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Height="40" PreviewMouseLeftButtonDown="start_MouseDown" Foreground="#FFD8D8D8" Background="#FF737373" />
-                
 
-            </Grid>
-        </Border>
+                    <TextBox x:Name="RefreshHour" 
+                        MinWidth="0" MinHeight="0"
+                        TextWrapping="Wrap" Height="30"
+                        Text="0" FontSize="14"
+                                    VerticalAlignment="Top" 
+                                    VerticalContentAlignment="Center" 
+                                        HorizontalContentAlignment="Right"
+                                Margin="10,246,0,0" HorizontalAlignment="Left" Width="40" >
+                        <TextBox.Template>
+                            <ControlTemplate TargetType="TextBox">
+                                <Border Background="#404040" CornerRadius="0" Padding="1">
+                                    <ScrollViewer x:Name="PART_ContentHost"/>
+                                </Border>
+                            </ControlTemplate>
+                        </TextBox.Template>
+                        <TextBox.Resources>
+                            <!-- 리소스를 추가하려면 여기에 정의 -->
+                        </TextBox.Resources>
+                    </TextBox>
 
 
+                    <TextBox x:Name="RefreshMinute" 
+                        MinWidth="0" MinHeight="0"
+                        TextWrapping="Wrap" Height="31"
+                        Text="0" FontSize="14"
+                        VerticalAlignment="Top" 
+                        VerticalContentAlignment="Center" 
+                        HorizontalContentAlignment="Right"
+                        Margin="70,246,0,0" HorizontalAlignment="Left" Width="40">
+                        <TextBox.Template>
+                            <ControlTemplate TargetType="{x:Type TextBox}">
+                                <Border Background="#404040" CornerRadius="0" Padding="1">
+                                    <ScrollViewer x:Name="PART_ContentHost"/>
+                                </Border>
+                            </ControlTemplate>
+                        </TextBox.Template>
+                    </TextBox>
+                    
+                    <TextBox x:Name="RefreshSecond" 
+                        MinWidth="0" MinHeight="0"
+                        TextWrapping="Wrap" Height="31"
+                        Text="30" FontSize="14"
+                        VerticalAlignment="Top" 
+                        VerticalContentAlignment="Center" 
+                        HorizontalContentAlignment="Right"
+                        Margin="130,246,0,0" HorizontalAlignment="Left" Width="40">
+                        <TextBox.Template>
+                            <ControlTemplate TargetType="{x:Type TextBox}">
+                                <Border Background="#404040" CornerRadius="0" Padding="1">
+                                    <ScrollViewer x:Name="PART_ContentHost"/>
+                                </Border>
+                            </ControlTemplate>
+                        </TextBox.Template>
+                    </TextBox>
+                    <TextBlock VerticalAlignment="Top" FontSize="20"
+                        Margin="120,246,0,0" Foreground="#FFD8D8D8" HorizontalAlignment="Left" Width="9"  ><Run Text=":"/></TextBlock>
 
+
+                    <Button x:Name="start" Content="시작" Margin="6,0,6,28" VerticalAlignment="Bottom" 
+                            HorizontalAlignment="Stretch" Height="40" 
+                            PreviewMouseLeftButtonDown="CroquisStartButton" >
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Background" Value="#FF737373"/>
+                                <Setter Property="Foreground" Value="#FFD8D8D8"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Foreground" Value="#FF000000"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+
+                </Grid>
+            </Border>
+
+        </Grid>
     </Grid>
 
 

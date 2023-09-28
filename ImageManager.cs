@@ -1,380 +1,646 @@
-﻿using croquis;
+﻿using OpenCvSharp;
 using System;
-using System.Diagnostics;
-using System.Drawing;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.RightsManagement;
+using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
-using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
 using System.Windows.Threading;
 
 public class ImageManager
 {
+    private DirectoryManager directoryManager;
 
-    public int ImageSize { get; set; } = 129;
-    public int PreviewGridWidth { get; set; }
-
-    private ExceptionLogger log;
-
-    public MouseButtonEventHandler ImageClick { get; set; }
-
-
-    public ImageManager(ExceptionLogger log)
-	{
-        this.log = log;
-	}
-
-
-    //https://dev-dudfufl.tistory.com/9
-
-
-
-
-    /// <summary>
-    /// 지정된 이미지 파일을 로드하고, 원본 크기의 비트맵 이미지를 반환합니다.
-    /// </summary>
-    /// <param name="Path">이미지 파일의 경로</param>
-    /// <returns>원본 크기의 비트맵 이미지</returns>
-    public BitmapImage LoadOriginalImage(string Path)
-    {
-        if (System.IO.File.Exists(Path))
-        {
-            
-            //이미지를 읽기 전용으로 오픈 
-            using (System.IO.FileStream stream = new System.IO.FileStream(Path, System.IO.FileMode.Open, System.IO.FileAccess.Read))
-            {
-                using (System.IO.BinaryReader reader = new System.IO.BinaryReader(stream))
-                {
-                    using(var MemoryStream = new System.IO.MemoryStream(reader.ReadBytes((int)stream.Length)))
-                    {
-                        BitmapImage bitmapImage = new BitmapImage();
-                        bitmapImage.BeginInit();
-
-                        if (ImageFileRotateCheck(MemoryStream))
-                        {
-                            bitmapImage.Rotation = Rotation.Rotate90;
-                        }
-                        MemoryStream.Seek(0, SeekOrigin.Begin);
-                        bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-                        bitmapImage.StreamSource = MemoryStream;
-                        bitmapImage.EndInit();
-
-
-                        return bitmapImage;
-                        
-                    }
-                }
-            }
-        }
-        else
-        {
-            return null;
-        }
-    }
-
+    private ImageStream imageStream;
     
+    private ImageCacheRepository cacheManager;
 
-    //https://stackoverflow.com/questions/7533845/system-argumentexception-parameter-is-not-valid 
-    // 해결할 수 있는 코드 같은데 아직 모르겠음
-    // 이미지 손상이라 해결할 필요 없음 ㅅㄱ
-
-    /// <summary>
-    /// 이미지 파일의 회전 정보를 확인하여 이미지가 회전되었는지 여부를 반환합니다.
-    /// </summary>
-    /// <param name="memoryStream">이미지 파일의 데이터가 포함된 MemoryStream</param>
-    /// <returns>이미지가 시계방향으로 회전된 경우 true, 그렇지 않으면 false</returns>
-    public bool ImageFileRotateCheck(MemoryStream memoryStream)
+    public ImageManager(DirectoryManager directoryManager, ImageStream imageStream, ImageCacheRepository cacheManager)
     {
-
-        try
-        {
-            // MemoryStream에서 이미지를 읽어옵니다.
-            using (System.Drawing.Image img = System.Drawing.Image.FromStream(memoryStream))
-            {
-                // 이미지의 속성(Property) 목록에 회전 정보를 나타내는 속성 (0x112)이 있는지 확인합니다.
-                if (img.PropertyIdList.Contains(0x112))
-                {
-                    foreach (var prop in img.PropertyItems)
-                    {
-                        if (prop.Id == 0x112)
-                        {
-                            // 회전 정보 속성 (0x112)을 찾고, 속성 값이 6인 경우 이미지가 시계방향으로 회전되었다고 판단합니다.
-                            if (prop.Value[0] == 6)
-                            {
-                                return true;
-                            }
-                        }
-                    }
-                }
-
-                // 회전 정보가 없거나 회전되지 않은 이미지인 경우 false를 반환합니다.
-                return false;
-            }
-        }
-        catch (Exception ex)
-        {
-            // 에러가 발생한 경우 디버그 출력으로 에러 메시지와 관련 정보를 표시합니다.
-
-        }
-
-        // 에러가 발생한 경우 또는 회전 정보를 확인할 수 없는 경우 false를 반환합니다.
-        return false;
+        this.directoryManager = directoryManager;
+        this.imageStream = imageStream;
+        this.cacheManager = cacheManager;
     }
 
-
-    /// <summary>
-    /// 파일 경로로부터 이미지를 로드하여 BitmapImage를 반환합니다.
-    /// </summary>
-    /// <param name="filePath">이미지 파일 경로</param>
-    /// <returns>로드된 이미지의 BitmapImage</returns>
-    public BitmapImage LoadImage(string ImagePath)
-    {
-        if (System.IO.File.Exists(ImagePath))
-        {
-            //이미지를 읽기 전용으로 오픈 
-            using (System.IO.FileStream stream = new System.IO.FileStream(ImagePath, System.IO.FileMode.Open, System.IO.FileAccess.Read))
-            {
-                using (System.IO.BinaryReader reader = new System.IO.BinaryReader(stream))
-                {
-
-                    using (var MemoryStream = new System.IO.MemoryStream(reader.ReadBytes((int)stream.Length)))
-                    {
-                        BitmapImage bitmapImage = new BitmapImage();
-                        bitmapImage.BeginInit();
-                        if (ImageFileRotateCheck(MemoryStream))
-                        {
-                            bitmapImage.Rotation = Rotation.Rotate90;
-                        }
-                        bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-                        stream.Seek(0, SeekOrigin.Begin);
-                        bitmapImage.StreamSource = stream;
-                        bitmapImage.DecodePixelWidth = ImageSize;
-                        bitmapImage.EndInit();
-
-
-
-                        return bitmapImage;
-                    }
-
-                }
-            }
-        }
-        else
-        {
-            return null;
-        }
-    }
+    #region 미리보기 이미지 
 
 
     /// <summary>
-    /// 지정된 디렉토리에서 이미지 파일을 로드하여 ListBox에 미리보기 이미지를 표시합니다.
+    /// 
     /// </summary>
-    /// <param name="pictureBox">미리보기 이미지를 표시할 ListBox</param>
-    /// <param name="path">이미지 파일이 포함된 디렉토리 경로</param>
-    public void LoadAndDisplayPreviewImages(ListBox pictureBox,string path)
+    /// <param name="PictureViewer"></param>
+    /// <param name="imageTreeViewItem"></param>
+    public void CalculateAndSetGridSizeForImages(ListBox PictureViewer,ImageTreeViewItem imageTreeViewItem)
     {
-        pictureBox.Items.Clear();
-
-        DirectoryInfo directory = new DirectoryInfo(path);
-        int imageCount = directory.GetFiles().Count();
+        int imageCount = imageTreeViewItem.Items.Count;
 
         // ListBox 열 수 계산
-        int columns = CalculateColumns((int)pictureBox.ActualWidth);
+        int columns = imageStream.CalculateColumns((int)PictureViewer.ActualWidth);
         int rows = (imageCount / columns) + 1;
 
         // ListBox에 DataContext 설정
-        pictureBox.DataContext = new PreviewGridSize(rows, columns);
-
-        foreach (FileInfo file in directory.GetFiles())
-        {
-
-            if (!IsImageExtension(file.FullName))
-            {
-                continue;
-            }
-            ImageSource imageSource = LoadImage(file.FullName);
-            BitmapImage bitmapImage = (BitmapImage) imageSource;
-
-            ImageBlock imageBlock = new ImageBlock(bitmapImage, file.Name);
-            imageBlock._Image.Tag = file.FullName;
-            imageBlock._Image.MouseLeftButtonDown += ImageClick;
-            
-
-            pictureBox.Items.Add(imageBlock);
-        }
-    }
-
-
-    
-    /// <summary>
-    /// 지정된 이미지 파일의 경로로부터 이미지를 읽기 모드로 로드하여 MemoryStream으로 반환합니다.
-    /// </summary>
-    /// <param name="ImagePath">이미지 파일 경로</param>
-    /// <returns>로드된 이미지의 MemoryStream</returns>
-    public MemoryStream LoadImageStream(string ImagePath)
-    {
-        using (FileStream stream = new FileStream(ImagePath, FileMode.Open, FileAccess.Read))
-        {
-            using (BinaryReader reader = new BinaryReader(stream))
-            {
-                var memoryStream = new MemoryStream(reader.ReadBytes((int)stream.Length));
-                return memoryStream;
-            }
-        }
+        PictureViewer.DataContext = new PreviewGridSize(rows, columns);
     }
 
 
     /// <summary>
-    /// 지정된 이미지 파일의 경로로부터 이미지를 비동기적으로 읽어와 MemoryStream 형태로 반환합니다.
+    /// 주어진 이미지 파일들을 화면에 어떻게 배열할지 결정하는 그리드 크기를 계산하고 설정합니다.
     /// </summary>
-    /// <param name="ImagePath">이미지 파일 경로</param>
-    /// <returns>이미지 파일의 MemoryStream</returns>
-    public async Task<MemoryStream> LoadImageStreamAsync(string ImagePath)
+    /// <param name="fileInfos">이미지 파일 정보 배열</param
+    public void CalculateAndSetGridSizeForImages(ListBox PictureViewer, FileInfo[] fileInfos)
     {
-        return await Task<MemoryStream>.Run(() => {
+        int imageCount = fileInfos.Length;
 
-            using (FileStream stream = new FileStream(ImagePath, FileMode.Open, FileAccess.Read))
+        // ListBox 열 수 계산
+        int columns = imageStream.CalculateColumns((int)PictureViewer.ActualWidth);
+        int rows = (imageCount / columns) + 1;
+
+        // ListBox에 DataContext 설정
+        PictureViewer.DataContext = new PreviewGridSize(rows, columns);
+    }
+
+
+    /// <summary>
+    ///  지정된 이미지 파일을 UI 스레드에서 로드하여 미리보기 컨트롤에 표시합니다.
+    /// </summary>
+    /// <param name="fullName"></param>
+    public async void DisplayImageOnUIThread(System.Windows.Controls.ListBox pictureView, string fullName)
+    {
+        // 이미지 파일을 읽어와 MemoryStream에 저장합니다.
+        using (MemoryStream memoryStream = imageStream.LoadImageToMemoryStream(fullName))
+        {
+            // 이미지 회전 여부를 확인합니다.
+            bool rotateCheck = imageStream.ImageFileRotateCheck(memoryStream);
+
+            // 이미지를 지정된 크기로 리사이징한 후 MemoryStream에 저장합니다.
+            using (MemoryStream ResizeMemoryStream = imageStream.ResizeImage(memoryStream, 129, 129))
             {
-                using (BinaryReader reader = new BinaryReader(stream))
+                // 이미지 리사이징에 실패한 경우 처리를 중단합니다.
+                if (ResizeMemoryStream == null)
                 {
-                    var memoryStream = new MemoryStream(reader.ReadBytes((int)stream.Length));
-                    return memoryStream;
+                    return;
+                }
+                // MemoryStream의 위치를 처음으로 되돌립니다.
+                ResizeMemoryStream.Seek(0, SeekOrigin.Begin);
+
+                // UI 스레드로 비동기적으로 이미지를 표시합니다.
+                await Application.Current.Dispatcher.InvokeAsync(async () =>
+                {
+                    BitmapImage bitmapImage = new BitmapImage();
+                    bitmapImage.BeginInit();
+
+                    if (rotateCheck)
+                    {
+                        // 이미지가 회전되었다면 비트맵 이미지의 회전 속성을 설정합니다.
+                        bitmapImage.Rotation = Rotation.Rotate90;
+                    }
+                    // 이미지를 캐시로 로드하고 스트림을 지정합니다.
+                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmapImage.StreamSource = ResizeMemoryStream;
+                    bitmapImage.EndInit();
+
+                    // 이미지를 찾아서 미리보기 컨트롤에 표시합니다.
+                    ImageBlock FindBlock = FindImageBlockByTag(pictureView, fullName);
+                    {
+                        if (FindBlock != null)
+                        {
+                            FindBlock._Image.Source = bitmapImage;
+                        }
+                    }
+
+
+                }, DispatcherPriority.Normal);
+            }
+        }
+    }
+
+
+
+    private async void DisplayImageAsync(MemoryStream ResizeMemoryStream, System.Windows.Controls.ListBox pictureView, string fullName)
+    {
+        // UI 스레드로 비동기적으로 이미지를 표시합니다.
+        await Application.Current.Dispatcher.InvokeAsync(async () =>
+        {
+            BitmapImage bitmapImage = new BitmapImage();
+            bitmapImage.BeginInit();
+
+            // 이미지를 캐시로 로드하고 스트림을 지정합니다.
+            bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+            bitmapImage.StreamSource = ResizeMemoryStream;
+            bitmapImage.EndInit();
+
+            // 이미지를 찾아서 미리보기 컨트롤에 표시합니다.
+            ImageBlock FindBlock = FindImageBlockByTag(pictureView, fullName);
+            {
+                if (FindBlock != null)
+                {
+                    FindBlock._Image.Source = bitmapImage;
                 }
             }
 
 
-        });
+        }, DispatcherPriority.Normal);
     }
 
 
+    #endregion
+
+    #region 원본 이미지로 BitmapImage 생성
+
     /// <summary>
-    /// 제공된 MemoryStream에서 이미지를 가져와 지정된 최대 너비 및 높이로 조정하고, 
-    /// 리사이즈된 이미지의 MemoryStream을 반환합니다. 이미지의 원래 종횡비는 유지됩니다.
+    /// 
+    /// 
     /// </summary>
-    /// <param name="sourceStream">조정할 이미지가 들어있는 MemoryStream입니다.</param>
-    /// <param name="maxWidth">리사이즈된 이미지의 최대 너비입니다.</param>
-    /// <param name="maxHeight">리사이즈된 이미지의 최대 높이입니다.</param>
-    /// <returns>리사이즈된 이미지의 MemoryStream을 반환합니다.</returns>
-    public MemoryStream ResizeImage(MemoryStream sourceStream, int maxWidth, int maxHeight)
+    /// <param name="path"></param>
+    /// <returns></returns>
+    public BitmapImage CreateBitmapImageFromPath(string path)
     {
+        MemoryStream memoryStream = null;
         try
         {
-            using (System.Drawing.Image image = System.Drawing.Image.FromStream(sourceStream))
-            {
-                // 이미지 크기를 조절
-                int newWidth, newHeight;
-
-                if (image.Width > image.Height)
-                {
-                    newWidth = maxWidth;
-                    newHeight = (int)((double)image.Height / image.Width * maxWidth);
-                }
-                else
-                {
-                    newHeight = maxHeight;
-                    newWidth = (int)((double)image.Width / image.Height * maxHeight);
-                }
-
-                using (System.Drawing.Image resizedImage = new Bitmap(image, newWidth, newHeight))
-                {
-                    // 리사이즈된 이미지를 MemoryStream에 저장
-                    MemoryStream resizedStream = new MemoryStream();
-                    resizedImage.Save(resizedStream, System.Drawing.Imaging.ImageFormat.Jpeg); // 이미지 형식에 맞게 변경
-                    resizedStream.Seek(0, SeekOrigin.Begin);
-
-                    return resizedStream;
-                }
-            }
-        }
-        catch (Exception ex)
+            memoryStream = imageStream.LoadOriginalImage(path);
+            if (memoryStream == null || memoryStream.Length == 0) return null;
+            
+            BitmapImage bitmapImage = CreateBitmapImageFromStream(memoryStream);
+            
+            return bitmapImage;
+        } catch (Exception e)
         {
-            this.log.LogWrite(ex.StackTrace);
+            
+        } finally
+        {
+            memoryStream?.Close();
         }
 
         return null;
     }
 
 
+    #endregion
+
+
+
+    #region MemoryStream으로 BitmapImage 생성
 
     /// <summary>
-    /// 지정된 이미지의 MemoryStream을 받아와 비동기적으로 최대 너비 및 높이로 리사이즈한 후,
-    /// 리사이즈된 이미지의 MemoryStream을 반환합니다.
+    /// 주어진 MemoryStream에서 BitmapImage를 생성하여 반환합니다.
     /// </summary>
-    /// <param name="sourceStream">리사이즈할 이미지의 MemoryStream</param>
-    /// <param name="maxWidth">최대 너비</param>
-    /// <param name="maxHeight">최대 높이</param>
-    /// <returns>리사이즈된 이미지의 MemoryStream</returns>
-    public async Task<MemoryStream> ResizeImageAsync(MemoryStream sourceStream, int maxWidth, int maxHeight)
+    /// <param name="memoryStream">이미지 데이터를 포함하는 MemoryStream</param>
+    /// <returns>생성된 BitmapImage 객체</returns>
+    public BitmapImage CreateBitmapImageFromStream(MemoryStream memoryStream)
     {
-        return await Task<MemoryStream>.Run(() =>
-        {
-            using (System.Drawing.Image image = System.Drawing.Image.FromStream(sourceStream))
-            {
-                // 이미지 크기를 조절
-                int newWidth, newHeight;
+        BitmapImage bitmapImage = new BitmapImage();
+        bitmapImage.BeginInit();
+        memoryStream.Seek(0, SeekOrigin.Begin);
+        bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+        bitmapImage.StreamSource = memoryStream;
+        bitmapImage.EndInit();
 
-                if (image.Width > image.Height)
+        return bitmapImage;
+    }
+
+
+    #endregion
+
+
+
+
+    #region
+    /// <summary>
+    /// 이미지를 화면에 출력
+    /// </summary>
+    /// <param name="imageTreeViewItem"></param>
+    public void ChangeMainWin(Image image, ImageTreeViewItem imageTreeViewItem)
+    {
+        MemoryStream memoryStream = null;
+
+        if (imageTreeViewItem.ImageCache != null)
+        {
+            //이미지 좌우반전
+            memoryStream = ChangeConvertToFlip(imageTreeViewItem);
+
+            //이미지 흑백전환 
+            if (imageTreeViewItem.ImageCache.IsGrayscale)
+            {
+                if (memoryStream != null)
                 {
-                    newWidth = maxWidth;
-                    newHeight = (int)((double)image.Height / image.Width * maxWidth);
+                    memoryStream = ConvertToGrayscale(memoryStream);
                 }
                 else
                 {
-                    newHeight = maxHeight;
-                    newWidth = (int)((double)image.Width / image.Height * maxHeight);
+                    memoryStream = ConvertToGrayscale(imageTreeViewItem.FullName);
                 }
 
-                using (System.Drawing.Image resizedImage = new Bitmap(image, newWidth, newHeight))
-                {
-                    // 리사이즈된 이미지를 MemoryStream에 저장
-                    MemoryStream resizedStream = new MemoryStream();
-                    resizedImage.Save(resizedStream, System.Drawing.Imaging.ImageFormat.Jpeg); // 이미지 형식에 맞게 변경
-                    resizedStream.Seek(0, SeekOrigin.Begin);
 
-                    return resizedStream;
-                }
             }
-        });
+
+            //이미지 회전 
+            if (memoryStream != null)
+            {
+                MemoryStream result = RotateImage(memoryStream, imageTreeViewItem);
+                memoryStream = result == null ? memoryStream : result;
+            }
+            else
+            {
+                MemoryStream result = RotateImage(imageTreeViewItem);
+                memoryStream = result == null ? memoryStream : result;
+            }
+
+
+
+        }
+
+
+        if (memoryStream == null || imageTreeViewItem.ImageCache == null)
+            memoryStream = imageStream.LoadOriginalImage(imageTreeViewItem.FullName);
+
+        BitmapImage bitmapImage = new BitmapImage();
+
+        bitmapImage.BeginInit();
+        bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+        bitmapImage.StreamSource = memoryStream;
+        bitmapImage.EndInit();
+
+        image.Source = bitmapImage;
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="imageTreeViewItem"></param>
+    /// <param name="sourceMemoryStream"></param>
+    /// <returns></returns>
+    public MemoryStream ChangeMainWin(ImageTreeViewItem imageTreeViewItem, MemoryStream sourceMemoryStream)
+    {
+        MemoryStream memoryStream = null;
+
+        if (imageTreeViewItem.ImageCache != null)
+        {
+            //이미지 좌우반전
+            memoryStream = ChangeConvertToFlip(imageTreeViewItem);
+
+            //이미지 흑백전환 
+            if (imageTreeViewItem.ImageCache.IsGrayscale)
+            {
+                if (memoryStream != null)
+                {
+                    memoryStream = ConvertToGrayscale(memoryStream);
+                }
+                else
+                {
+                    memoryStream = ConvertToGrayscale(imageTreeViewItem.FullName);
+                }
+
+
+            }
+
+            //이미지 회전 
+            if (memoryStream != null)
+            {
+                MemoryStream result = RotateImage(memoryStream, imageTreeViewItem);
+                memoryStream = result == null ? memoryStream : result;
+            }
+            else
+            {
+                MemoryStream result = RotateImage(imageTreeViewItem);
+                memoryStream = result == null ? memoryStream : result;
+            }
+
+
+
+        }
+
+
+        if (memoryStream == null || imageTreeViewItem.ImageCache == null)
+            memoryStream = imageStream.LoadOriginalImage(imageTreeViewItem.FullName);
+
+
+
+        return memoryStream;
+    }
+
+
+    #endregion
+
+
+
+
+    #region 이미지 회전, 흑백 전환, 좌우반전 기능 
+
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="imageTreeViewItem"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
+    public MemoryStream RotateImage(ImageTreeViewItem imageTreeViewItem)
+    {
+        string path = imageTreeViewItem.ImageCache.ImagePath;
+        MemoryStream memoryStream = imageStream.LoadOriginalImage(path);
+
+        double angle = imageTreeViewItem.ImageCache.Angle;
+        RotateFlags rotateFlag;
+        if (angle == 0)
+        {
+            return null;
+        }
+        else if (angle == 90)
+        {
+            rotateFlag = RotateFlags.Rotate90Clockwise;
+        }
+        else if (angle == 180)
+        {
+            rotateFlag = RotateFlags.Rotate180;
+        }
+        else if (angle == 270)
+        {
+            rotateFlag = RotateFlags.Rotate90Counterclockwise;
+        }
+        else
+        {
+            throw new ArgumentException("Invalid rotation angle.");
+        }
+        byte[] buffer = memoryStream.ToArray();
+        Mat mat = Mat.FromImageData(buffer);
+        Mat rotatedImage = new Mat();
+        Cv2.Rotate(mat, rotatedImage, rotateFlag);
+        byte[] rotatedData = rotatedImage.ToBytes(".jpg");
+
+        return new MemoryStream(rotatedData);
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="sourceMemoryStream"></param>
+    /// <param name="imageTreeViewItem"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
+    public MemoryStream RotateImage(MemoryStream sourceMemoryStream, ImageTreeViewItem imageTreeViewItem)
+    {
+        byte[] buffer = sourceMemoryStream.ToArray();
+        double angle = imageTreeViewItem.ImageCache.Angle;
+        RotateFlags rotateFlag;
+
+        if (angle == 0)
+        {
+            return null;
+        }
+        else if (angle == 90)
+        {
+            rotateFlag = RotateFlags.Rotate90Clockwise;
+        }
+        else if (angle == 180)
+        {
+            rotateFlag = RotateFlags.Rotate180;
+        }
+        else if (angle == 270)
+        {
+            rotateFlag = RotateFlags.Rotate90Counterclockwise;
+        }
+        else
+        {
+            throw new ArgumentException("Invalid rotation angle.");
+        }
+
+        Mat mat = Mat.FromImageData(buffer);
+        Mat rotatedImage = new Mat();
+        Cv2.Rotate(mat, rotatedImage, rotateFlag);
+        byte[] rotatedData = rotatedImage.ToBytes(".jpg");
+
+        return new MemoryStream(rotatedData);
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="imageTreeViewItem"></param>
+    /// <returns></returns>
+    public MemoryStream ChangeConvertToFlip(ImageTreeViewItem imageTreeViewItem)
+    {
+
+
+        //좌우반전일 경우
+        if (imageTreeViewItem.ImageCache.IsFlip == true)
+        {
+            return ConvertToFlip(imageTreeViewItem.FullName);
+        }
+        //좌우반전이 아닐 경우
+        if (imageTreeViewItem.ImageCache.IsFlip == false)
+        {
+            return imageStream.LoadOriginalImage(imageTreeViewItem.FullName);
+        }
+        return null;
     }
 
 
 
+    /// <summary>
+    /// 이미지 좌우반전
+    /// </summary>
+    /// <param name="path"></param>
+    /// <returns></returns>
+    public MemoryStream ConvertToFlip(string path)
+    {
+        Mat src = Cv2.ImRead(path);
+        Mat flip = new Mat();
+
+        Cv2.Flip(src, flip, FlipMode.Y);
+        byte[] data = flip.ToBytes(".jpg");
+
+        MemoryStream memoryStream = new MemoryStream(data);
+        return memoryStream;
+    }
+
+
 
     /// <summary>
-    /// 주어진 파일 경로의 확장자가 이미지 파일인지 확인합니다.
+    /// 
     /// </summary>
-    /// <param name="path">확인할 파일 경로</param>
-    /// <returns>이미지 파일이면 true, 아니면 false</returns>
-    public bool IsImageExtension(string path)
+    /// <param name="imageTreeViewItem"></param>
+    /// <returns></returns>
+    public ImageCache CreateImageCacheFromTree(ImageTreeViewItem imageTreeViewItem)
     {
-        string extension = Path.GetExtension(path);
-        string _extension = extension.ToLower();
-        string[] extensionArray = new string[] { ".jpg", ".jpeg", ".bmp", ".exif", ".png", ".tif", ".tiff" };
+        StackPanel stack = imageTreeViewItem.Header as StackPanel;
 
-        foreach (string e in extensionArray)
+        ImageCache imageCache = new ImageCache();
+        imageCache.ImageName = imageTreeViewItem.ImageName;
+        imageCache.ImagePath = imageTreeViewItem._FullName;
+
+        return imageCache;
+    }
+
+
+    /// <summary>
+    /// 이미지 좌우반전
+    /// </summary>
+    /// <param name="path"></param>
+    /// <returns></returns>
+    public void ConvertToFlip(ImageTreeViewItem imageTreeViewItem)
+    {
+
+
+        if (imageTreeViewItem.ImageCache == null)
         {
-            if (e.Equals(_extension))
+            imageTreeViewItem.ImageCache = CreateImageCacheFromTree(imageTreeViewItem);
+        }
+
+
+        if (imageTreeViewItem.ImageCache.IsFlip == true)
+            imageTreeViewItem.ImageCache.IsFlip = false;
+
+
+        if (imageTreeViewItem.ImageCache.IsFlip == false)
+            imageTreeViewItem.ImageCache.IsFlip = true;
+
+
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="imageTreeViewItem"></param>
+    public void ConvertToGrayscale(ImageTreeViewItem imageTreeViewItem)
+    {
+        if (imageTreeViewItem.ImageCache == null)
+        {
+            imageTreeViewItem.ImageCache = CreateImageCacheFromTree(imageTreeViewItem);
+        }
+
+        if (!imageTreeViewItem.ImageCache.IsGrayscale)
+            imageTreeViewItem.ImageCache.IsGrayscale = true;
+
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="sourceMemoryStrem"></param>
+    /// <returns></returns>
+    public MemoryStream ConvertToGrayscale(MemoryStream sourceMemoryStrem)
+    {
+        byte[] buffer = sourceMemoryStrem.ToArray();
+
+        Mat src = Mat.FromImageData(buffer);
+        Mat Gray = new Mat();
+
+        Cv2.CvtColor(src, Gray, ColorConversionCodes.BGR2GRAY);
+        byte[] data = Gray.ToBytes(".jpg");
+
+        MemoryStream memoryStream = new MemoryStream(data);
+
+
+        return memoryStream;
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="path"></param>
+    /// <returns></returns>
+    public MemoryStream ConvertToGrayscale(string path)
+    {
+        Mat src = Cv2.ImRead(path);
+        Mat Gray = new Mat();
+
+        Cv2.CvtColor(src, Gray, ColorConversionCodes.BGR2GRAY);
+        byte[] data = Gray.ToBytes(".jpg");
+
+        MemoryStream memoryStream = new MemoryStream(data);
+
+
+        return memoryStream;
+    }
+    #endregion
+
+
+
+    #region 크로키 목록 
+
+
+    /// <summary>
+    /// 크로키 목록의 미리보기
+    /// </summary>
+    /// <param name="fullName"></param>
+    public async void DisplayImageOnUIThreadTree(ListBox PictureViewer, ImageTreeViewItem treeViewItem)
+    {
+        using (MemoryStream memoryStream = ChangeMainWin(treeViewItem, null))
+        {
+            // 이미지를 지정된 크기로 리사이징한 후 MemoryStream에 저장합니다.
+            using (MemoryStream ResizeMemoryStream = imageStream.ResizeImage(memoryStream, 129, 129))
             {
-                return true;
+                // 이미지 리사이징에 실패한 경우 처리를 중단합니다.
+                if (ResizeMemoryStream == null)
+                {
+                    return;
+                }
+                // MemoryStream의 위치를 처음으로 되돌립니다.
+                ResizeMemoryStream.Seek(0, SeekOrigin.Begin);
+
+                // UI 스레드로 비동기적으로 이미지를 표시합니다.
+                await Application.Current.Dispatcher.InvokeAsync(async () =>
+                {
+                    BitmapImage bitmapImage = new BitmapImage();
+                    bitmapImage.BeginInit();
+                    // 이미지를 캐시로 로드하고 스트림을 지정합니다.
+                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmapImage.StreamSource = ResizeMemoryStream;
+                    bitmapImage.EndInit();
+
+                    // 이미지를 찾아서 미리보기 컨트롤에 표시합니다.
+                    ImageBlock FindBlock = FindImageBlockByTag(PictureViewer, treeViewItem._FullName);
+                    {
+                        if (FindBlock != null)
+                        {
+                            FindBlock._Image.Source = bitmapImage;
+                        }
+                    }
+
+
+                }, DispatcherPriority.Normal);
             }
         }
-        return false;
+
     }
 
+    #endregion
 
+
+
+
+
+
+
+
+
+
+    #region 보조 메서드 
 
 
     /// <summary>
-    /// ListBox의 열 수를 계산합니다.
+    /// PictureViewer 내에서 특정 태그를 가진 ImageBlock을 찾는 보조 메서드
     /// </summary>
-    /// <param name="listBoxWidth">ListBox의 너비</param>
-    /// <returns>계산된 열 수</returns>
-    public int CalculateColumns(int width)
+    /// <param name="pictureBox"></param>
+    /// <param name="tag"></param>
+    /// <returns></returns>
+    private ImageBlock FindImageBlockByTag(System.Windows.Controls.ListBox pictureBox, string tag)
     {
-        return (int)width / ImageSize;
+        foreach (var item in pictureBox.Items)
+        {
+            if (item is ImageBlock imageBlock && imageBlock._Image.Tag as string == tag)
+            {
+                return imageBlock;
+            }
+        }
+        return null;
     }
 
+
+    #endregion
 }

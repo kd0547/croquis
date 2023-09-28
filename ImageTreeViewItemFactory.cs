@@ -12,7 +12,9 @@ public class ImageTreeViewItemFactory
     public MouseButtonEventHandler _MouseDoubleClick;
     public MouseButtonEventHandler _PreviewMouseDown;
     public MouseButtonEventHandler _PreviewMouseLeftButtonDown;
-    public MouseButtonEventHandler _PreviewMouseRightButtonDown;
+
+    //마우스 오른쪽 클릭 이벤트 
+    public MouseButtonEventHandler _MouseRightButtonDown;
 
     
     public MouseButtonEventHandler _BookMarKImageLeftButtonDown;
@@ -26,8 +28,10 @@ public class ImageTreeViewItemFactory
         this._PreviewMouseDoubleClick = builder._PreviewMouseDoubleClick;
         this._MouseDoubleClick = builder._MouseDoubleClick;
         this._PreviewMouseDown = builder._PreviewMouseDown;
+
+
         this._PreviewMouseLeftButtonDown = builder._PreviewMouseLeftButtonDown;
-        this._PreviewMouseRightButtonDown = builder._PreviewMouseRightButtonDown;
+        this._MouseRightButtonDown = builder._MouseRightButtonDown;
 
         this._BookMarKImageLeftButtonDown = builder._BookMarKImageLeftButtonDown;
     }
@@ -39,8 +43,9 @@ public class ImageTreeViewItemFactory
         public MouseButtonEventHandler _PreviewMouseDoubleClick;
         public MouseButtonEventHandler _MouseDoubleClick;
         public MouseButtonEventHandler _PreviewMouseDown;
+
         public MouseButtonEventHandler _PreviewMouseLeftButtonDown;
-        public MouseButtonEventHandler _PreviewMouseRightButtonDown;
+        public MouseButtonEventHandler _MouseRightButtonDown;
 
         public MouseButtonEventHandler _BookMarKImageLeftButtonDown;
 
@@ -80,9 +85,9 @@ public class ImageTreeViewItemFactory
             return this;
         }
 
-        public FactoryBuilder SetPreviewMouseRightButtonDown(MouseButtonEventHandler handler)
+        public FactoryBuilder SetMouseRightButtonDown(MouseButtonEventHandler handler)
         {
-            _PreviewMouseRightButtonDown = handler;
+            _MouseRightButtonDown = handler;
             return this;
         }
         public FactoryBuilder SetBookMarKImageLeftButtonDown(MouseButtonEventHandler handler)
@@ -113,11 +118,15 @@ public class ImageTreeViewItemFactory
         return new ImageTreeViewItem.ImageTreeViewItemBuilder()
             .SetFullName(FullName)
             .SetImageSource(ImageSource)
+            
             .SetText(Text)
-            //이벤트
+            .SetImageName(Text)
+            //파일 확장 
             .SetExpandedEvent(_Expanded)
-            .SetPreviewMouseDoubleClickEvent(_PreviewMouseDoubleClick)
-            .WithPreviewMouseDownEvent(_PreviewMouseDown)
+            //미리보기 이벤트 
+            .SetMouseDoubleClickEvent(_PreviewMouseDoubleClick)
+
+            .SetPreviewMouseDownEvent(_PreviewMouseDown)
             .build();
     }
 
@@ -128,10 +137,13 @@ public class ImageTreeViewItemFactory
             .SetImageSource(ImageSource)
             .SetText(Text)
             .SetBookMarkImageSource(BookMarkImageSource)
+            .SetImageName(Text)
             //이벤트
             .SetExpandedEvent(_Expanded)
+            //미리보기 이벤트 
             .SetPreviewMouseDoubleClickEvent(_PreviewMouseDoubleClick)
-            .WithPreviewMouseDownEvent(_PreviewMouseDown)
+
+            .SetPreviewMouseDownEvent(_PreviewMouseDown)
 
             .SetBookMarKImageLeftButtonDownEvent(_BookMarKImageLeftButtonDown)
             .build();
@@ -143,24 +155,28 @@ public class ImageTreeViewItemFactory
             .SetFullName(FullName)
             .SetImageSource(ImageSource)
             .SetText(Text)
+            .SetImageName(Text)
             //이벤트
             .SetExpandedEvent(_TargetExpanded)
-            .WithMouseDoubleClickEvent(_PreviewMouseDoubleClick)
-            .WithPreviewMouseRightButtonDownEvent(_PreviewMouseRightButtonDown)
+            //미리보기 이벤트 
+            .SetMouseDoubleClickEvent(_PreviewMouseDoubleClick)
+            .SetMouseRightButtonDownEvent(_MouseRightButtonDown)
             .build();
     }
 
-    public ImageTreeViewItem CreateTargetGetDirectories(ImageSource ImageSource, string Text, string FullName, ImageSource BookMarkImage)
+    public ImageTreeViewItem CreateTargetGetDirectories(ImageSource ImageSource, string Text, string FullName, ImageSource BookMarkImageSource)
     {
         return new ImageTreeViewItem.ImageTreeViewItemBuilder()
             .SetFullName(FullName)
             .SetImageSource(ImageSource)
             .SetText(Text)
-            
+            .SetImageName(Text)
+            .SetBookMarkImageSource(BookMarkImageSource)
             //이벤트
             .SetExpandedEvent(_TargetExpanded)
-            .WithMouseDoubleClickEvent(_PreviewMouseDoubleClick)
-            .WithPreviewMouseRightButtonDownEvent(_PreviewMouseRightButtonDown)
+            //미리보기 이벤트 
+            .SetMouseDoubleClickEvent(_PreviewMouseDoubleClick)
+            .SetMouseRightButtonDownEvent(_MouseRightButtonDown)
             .build();
     }
 
@@ -169,11 +185,12 @@ public class ImageTreeViewItemFactory
     {
         return new ImageTreeViewItem.ImageTreeViewItemBuilder()
             .SetFullName(FullName)
-            
+            .SetImageName(Text)
             .SetText(Text)
             //이벤트
-            .WithPreviewMouseLeftButtonDownEvent(_PreviewMouseLeftButtonDown)
-            .WithPreviewMouseRightButtonDownEvent(_PreviewMouseRightButtonDown)
+            .SetPreviewMouseLeftButtonDownEvent(_PreviewMouseLeftButtonDown)
+            //메뉴 확장
+            .SetMouseRightButtonDownEvent(_MouseRightButtonDown)
             .build();
     }
 

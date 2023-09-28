@@ -32,7 +32,7 @@ public class FileWatcher
         try
         {
             string osDrive = Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.System));
-            Debug.WriteLine(osDrive);
+            //Debug.WriteLine(osDrive);
             string[] drivers = Directory.GetLogicalDrives();
             _watchers = new List<FileSystemWatcher>();
 
@@ -91,7 +91,7 @@ public class FileWatcher
     private void watcher_Create(object sender, FileSystemEventArgs e)
     {
         Application.Current.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
-        {
+         {
             try
             {
                 string root = Path.GetPathRoot(e.FullPath);

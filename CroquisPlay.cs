@@ -7,30 +7,34 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Shapes;
+
 
 public class CroquisPlay
 {
     
+    //리턴 받을 객체 
+    public Button PlayButton { get; set; }
 
-    public delegate void Sleep(int milliseconds);
-    public delegate void Show(string path);
+    public delegate void Sleep(int seconds);
+    public delegate void Show(ImageTreeViewItem item);
     public delegate void Stop();
     public delegate void Finish();
-    public delegate void Delay(int milliseconds);
+    public delegate void Delay(int seconds);
 
     public WaitCallback play { get; set; }
     
     public Sleep sleep { get; set; }
     public Show show { get; set; }
-    
-    
 
-
-    private PlayStatus status = PlayStatus.Play;
+    public PlayStatus Status { get; set; } = PlayStatus.Stop;
     
     public int Interval { get; set; }
     public int RefreshInterval {get; set; }
-    public int count { get; set; } = 0;
+    public int Page { get; set; } = 0;
 
 
     public CroquisPlay(Sleep sleep, Show show)
@@ -40,45 +44,143 @@ public class CroquisPlay
     }
 
     
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="o"></param>
-    public void run(object o)
+   
+    public async Task<bool> Run(object o)
     {
-        if(show == null) { return; }
-        if ((this.Interval == 0) || (this.RefreshInterval == 0)) return;
-
-        ThreadPool.QueueUserWorkItem(PrivateRun, o);
-    }
-
-
-    public void DelayPlayer(int second)
-    {
+        if(show == null) { return false; }
+        if ((this.Interval == 0) || (this.RefreshInterval == 0)) return false;
         
-        DateTime now = DateTime.Now;
-        TimeSpan duration = new TimeSpan(0, 0, second);
-        TimeSpan alramCount = new TimeSpan(0, 0, second - 3);
-
-        DateTime alramTime = now.Add(alramCount);
-        DateTime end = now.Add(duration);
-
-        while (end >= now)
+        
+        if(this.Status == PlayStatus.Stop)
         {
-            now = DateTime.Now;
-            if (now.Equals(end))
-            {
-                ThreadPool.QueueUserWorkItem(playMusic);
-            }
-            if (status == PlayStatus.Stop)
-            {
-                return;
-            }
+            this.Status = PlayStatus.Play;
+
+            return await PrivateRun(o);
+
+        } else
+        {
+            return false;
         }
         
     }
 
-   
+
+
+
+    private async Task<bool> PrivateRun(object o)
+    {
+        return await Application.Current.Dispatcher.Invoke(async () =>
+        {
+            List<ImageTreeViewItem> CroquisList = o as List<ImageTreeViewItem>;
+            if (CroquisList == null)
+                return false;
+
+            int croquisListCont = CroquisList.Count;
+
+            if (this.Page == 0)
+                this.Page = CroquisList.Count;
+
+            for (int i = 0; i < this.Page; i++)
+            {
+                if (this.Status == PlayStatus.Stop)
+                    break;
+
+                ImageTreeViewItem item = CroquisList[RandomRun(croquisListCont)];
+                show(item);
+                await DelayPlayer(Interval);
+                show(null);
+                await delay(RefreshInterval);
+                if (this.Status == PlayStatus.Skip)
+                {
+                    this.Status = PlayStatus.Play;
+                }
+            }
+            return true;
+        });
+    }
+
+
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="max"></param>
+    /// <returns></returns>
+    private int RandomRun(int max)
+    {
+        Random random = new Random();
+
+        return random.Next(0, max);
+    }
+
+    ///// <summary>
+    ///// 
+    ///// </summary>
+    ///// <param name="second"></param>
+    //public void DelayPlayer(int second)
+    //{
+    //    // 시작시간 
+    //    DateTime now = DateTime.Now;
+
+    //    //시작 ~ 종료 간격 
+    //    TimeSpan duration = new TimeSpan(0, 0, second);
+
+    //    //종료시간 
+    //    DateTime end = now.Add(duration);
+
+    //    while (end >= now)
+    //    {
+    //        if (this.Status == PlayStatus.Stop || this.Status == PlayStatus.Skip)
+    //        {
+    //            return;
+    //        }
+
+    //        //현재시간 체크 
+    //        now = DateTime.Now;
+    //        if (now.Equals(end))
+    //        {
+    //            ThreadPool.QueueUserWorkItem(playMusic);
+    //        }
+
+    //    }
+    //}
+
+    public async Task DelayPlayer(int second)
+    {
+        // 시작시간 
+        DateTime now = DateTime.Now;
+
+        //시작 ~ 종료 간격 
+        TimeSpan duration = new TimeSpan(0, 0, second);
+
+        //종료시간 
+        DateTime end = now.Add(duration);
+
+        await Task.Run(() =>
+        {
+            while (end >= now)
+            {
+                if (this.Status == PlayStatus.Stop || this.Status == PlayStatus.Skip)
+                {
+                    return;
+                }
+
+                //현재시간 체크 
+                now = DateTime.Now;
+                if (now >= end)
+                {
+                    ThreadPool.QueueUserWorkItem(playMusic);
+                    break;  // 반복문 종료
+                }
+            }
+        });
+    }
+
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="state"></param>
     public async void playMusic(object? state)
     {
         byte[] fileByte = Resource1.Alarm;
@@ -90,77 +192,46 @@ public class CroquisPlay
             
             waveOut.Play(); 
         });
-         
-
-
     }
 
-
-    public void delay(int second)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="second"></param>
+    public async Task delay(int second)
     {
-        DateTime now = DateTime.Now;
-        TimeSpan duration = new TimeSpan(0, 0, second);
-        DateTime end = now.Add(duration);
-
-        while(end >= now)
+        if(this.Status == PlayStatus.Play)
         {
-            now = DateTime.Now;
-            if (status == PlayStatus.Stop)
+            await Task.Run(() =>
             {
-                return;
-            }
+                Thread.Sleep(second * 1000); // seconds to milliseconds
+            });
         }
+
+        
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
     public void stop()
     {
-        if(status == PlayStatus.Stop) 
+        if(this.Status == PlayStatus.Stop) 
         {
             return;
         }
 
-        if(status == PlayStatus.Play)
+        if(this.Status == PlayStatus.Play)
         {
-            status = PlayStatus.Stop;  
+            this.Status = PlayStatus.Stop;  
         }
     }
 
-
-    private int randomRun(int max)
+    public void Skip()
     {
-        Random random = new Random();
-
-       return random.Next(0,max);
+        this.Status = PlayStatus.Skip;
     }
-
-    private void PrivateRun(object o)
-    {
-        List<string> path = o as List<string>;
-        if(path == null) { return; };
-
-        int c = this.count;
-        //int i = 0;
-        if(c == 0) 
-        {
-            c = path.Count;
-        }
-
-        for(int i = 0;i < c;i++)
-        {
-            if(status == PlayStatus.Stop)
-            {
-                status = PlayStatus.Play;
-                return;
-            }
-            string s= path[randomRun(path.Count)];
-
-            show(s);
-            DelayPlayer(Interval);
-            show(null);
-            delay(RefreshInterval);
-            
-        }
-    }
+    
     
 
 }

@@ -16,6 +16,8 @@ public class ImageBlock : StackPanel
     
     public string? Text { get; set; }
 
+    //디폴트값 NULL
+    public ImageCache ImageCache { get; set; } = null;
      
     
     public ImageBlock() 

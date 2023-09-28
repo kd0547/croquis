@@ -7,6 +7,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Media;
 using System.Windows.Controls;
 using croquis;
+using OpenCvSharp;
 
 public class DirectoryManager
 {
@@ -33,9 +34,7 @@ public class DirectoryManager
             {
                 ImageTreeViewItem item = imageTreeViewItemFactory.CreateLocalDrivesItem(GetIcomImage(dir), dir, dir);
 
-                
                 GetSubDirectories(item);
-
 
                 treeView.Items.Add(item);
             }
@@ -94,7 +93,7 @@ public class DirectoryManager
     #endregion
 
 
-    #region 크로키창 코드
+    #region 크로키 목록 코드
 
     /// <summary>
     /// 
@@ -111,7 +110,7 @@ public class DirectoryManager
         if (parent.Items.Count != 0) return;
 
         DirectoryInfo directory = new DirectoryInfo(path);
-        if (directory != null) return;
+        if (directory == null) return;
 
 
         if (directory.Attributes == FileAttributes.Directory)
@@ -126,6 +125,8 @@ public class DirectoryManager
             }
         }
     }
+
+
     /// <summary>
     /// 디렉토리에 있는 이미지 파일을 가져온다. 
     /// </summary>
@@ -150,20 +151,21 @@ public class DirectoryManager
     }
     #endregion
 
+    #region 북마크 기능
 
     /// <summary>
     /// 
     /// </summary>
     /// <param name="treeView"></param>
     /// <param name="path"></param>
-    #region
-    public void AddBookMarkTreeItem(TreeView treeView,string path)
+
+    public void AddBookMarkTreeItem(TreeView treeView, string path)
     {
         try
         {
             DirectoryInfo directory = new DirectoryInfo(path);
 
-            if(directory == null) return;
+            if (directory == null) return;
 
             ImageTreeViewItem item = imageTreeViewItemFactory.CreateSubDirectories(GetIcomImage(directory.FullName), directory.Name, directory.FullName, BookMarkEmptyStarImage());
 
@@ -183,18 +185,19 @@ public class DirectoryManager
 
             treeView.Items.Add(item);
         }
-        catch (Exception e) 
+        catch (Exception e)
         {
             log.LogWrite(e);
         }
 
     }
+
     /// <summary>
     /// 즐겨찾기 트리에 추가하는 메서드 
     /// </summary>
     /// <param name="treeView"></param>
     /// <param name="path"></param>
-    #region
+
     public void AddBookMarkTreeItem(TreeView treeView, ImageTreeViewItem viewItem)
     {
         try
@@ -230,10 +233,10 @@ public class DirectoryManager
         }
 
     }
-
     #endregion
 
 
+    #region 북마크 이미지(수정하기)
 
 
     public ImageSource BookMarFullStarImage()
@@ -271,6 +274,12 @@ public class DirectoryManager
 
         return bitmapImage;
     }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="item"></param>
+    /// <returns></returns>
     public ImageSource BookMarkImage(ImageTreeViewItem item)
     {
         try
@@ -285,7 +294,7 @@ public class DirectoryManager
                 bitmap = Resource1.EmptyStar;
             }
 
-            if(bitmap == null)
+            if (bitmap == null)
             {
                 bitmap = Resource1.EmptyStar;
             }
@@ -301,13 +310,312 @@ public class DirectoryManager
             bitmapImage.EndInit();
 
             return bitmapImage;
-        } catch (Exception e)
+        }
+        catch (Exception e)
         {
             log.LogWrite(e);
         }
 
         return null;
     }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="item"></param>
+    /// <returns></returns>
+    public ImageSource BookMarkImage(bool item)
+    {
+        try
+        {
+            System.Drawing.Bitmap bitmap = null;
+            if (item)
+            {
+                bitmap = Resource1.FullStar;
+            }
+            else
+            {
+                bitmap = Resource1.EmptyStar;
+            }
+
+            if (bitmap == null)
+            {
+                bitmap = Resource1.EmptyStar;
+            }
+
+            System.Drawing.Bitmap resize = new System.Drawing.Bitmap(bitmap, new System.Drawing.Size(14, 14));
+            BitmapImage bitmapImage = new BitmapImage();
+            bitmapImage.BeginInit();
+            MemoryStream ms = new MemoryStream();
+            resize.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+
+            ms.Seek(0, SeekOrigin.Begin);
+            bitmapImage.StreamSource = ms;
+            bitmapImage.EndInit();
+
+            return bitmapImage;
+        }
+        catch (Exception e)
+        {
+            log.LogWrite(e);
+        }
+
+        return null;
+    }
+
+    #endregion
+
+
+
+    #region 북마크 보조 기능 
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="directoryView"></param>
+    /// <param name="clickImageTreeItem"></param>
+    /// <returns></returns>
+    public ImageTreeViewItem FindImageTreeViewItem(TreeView directoryView, ImageTreeViewItem clickImageTreeItem)
+    {
+        if (directoryView.Items.Count == 0)
+            return null;
+
+
+        //탐색 수를 줄이기 위해 루트를 조회 
+        string clickImageTreeItemFullName = clickImageTreeItem.FullName;
+        string clickImageTreeItemRoot = Path.GetPathRoot(clickImageTreeItemFullName);
+
+        ImageTreeViewItem selectItem = null;
+
+        foreach (ImageTreeViewItem item in directoryView.Items)
+        {
+            string itemFullName = item.FullName;
+            string root = Path.GetPathRoot(itemFullName);
+
+            if (root.Equals(clickImageTreeItemRoot))
+            {
+                selectItem = item;
+            }
+        }
+
+        if (selectItem == null)
+            return null;
+
+        foreach (ImageTreeViewItem item in selectItem.Items)
+        {
+            if (item.FullName.Equals(clickImageTreeItem.FullName))
+                return item;
+
+
+            ImageTreeViewItem foundItem = FindImageTreeViewItemSub(item, clickImageTreeItem);
+            if (foundItem != null)
+            {
+                return foundItem;
+            }
+        }
+
+
+
+        return null;
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="item"></param>
+    /// <param name="clickImageTreeItem"></param>
+    /// <returns></returns>
+    public ImageTreeViewItem FindImageTreeViewItemSub(ImageTreeViewItem item, ImageTreeViewItem clickImageTreeItem)
+    {
+        if (item.Items.Count == 0)
+            return null;
+
+        string clickImageTreeSub = clickImageTreeItem.FullName;
+
+        foreach (ImageTreeViewItem subItem in item.Items)
+        {
+            string subItemFullName = subItem.FullName;
+
+            if (clickImageTreeSub.Equals(subItemFullName))
+            {
+                return subItem;
+            }
+
+            ImageTreeViewItem foundItem = FindImageTreeViewItemSub(subItem, clickImageTreeItem);
+
+            if (foundItem != null)
+            {
+                return foundItem;
+            }
+        }
+
+
+        return null;
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="directoryView"></param>
+    /// <param name="clickImageTreeItem"></param>
+    public void EmptyImage(TreeView directoryView, ImageTreeViewItem clickImageTreeItem)
+    {
+
+        clickImageTreeItem.IsBookMarkSelected = false;
+        clickImageTreeItem.BookMarkImageSource = BookMarkEmptyStarImage();
+
+        if (clickImageTreeItem.Items.Count != 0)
+        {
+            foreach (var item in clickImageTreeItem.Items)
+            {
+                ImageTreeViewItem imageTreeViewItem = item as ImageTreeViewItem;
+                EmptyImage(directoryView, imageTreeViewItem);
+            }
+        }
+    }
+
+    /// <summary>
+    /// 파일탐색기에서 즐겨찾기 이미지를 변경한다. 
+    /// </summary>
+    /// <param name="clickImageTreeItem"></param>
+    /// <param name="fullStartImage"></param>
+    public void checkFullImage(ImageTreeViewItem clickImageTreeItem, ImageSource fullStartImage)
+    {
+        try
+        {
+            if (clickImageTreeItem == null)
+                return;
+
+            foreach (ImageTreeViewItem item in clickImageTreeItem.Items)
+            {
+                item.IsBookMarkSelected = true;
+                item.BookMarkImageSource = fullStartImage;
+
+
+                checkFullImage(item, fullStartImage);
+            }
+        }
+        catch (Exception e)
+        {
+            log.LogWrite(e);
+        }
+
+    }
+
+
+
+
+    /// <summary>
+    /// 즐겨찾기에서 
+    /// </summary>
+    /// <param name="clickImageTreeItem"></param>
+    public void RemoveBookMark(TreeView treeView, ImageTreeViewItem clickImageTreeItem)
+    {
+
+
+
+        foreach (ImageTreeViewItem item in treeView.Items)
+        {
+            if (item.FullName.Equals(clickImageTreeItem.FullName))
+            {
+                treeView.Items.Remove(item);
+
+                break;
+            }
+
+            if (RemoveItemFromChildren(item, clickImageTreeItem))
+                break;
+        }
+    }
+
+
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="parentItem"></param>
+    /// <param name="targetItem"></param>
+    /// <returns></returns>
+    public bool RemoveItemFromChildren(ImageTreeViewItem parentItem, ImageTreeViewItem targetItem)
+    {
+        for (int i = 0; i < parentItem.Items.Count; i++)
+        {
+            ImageTreeViewItem childItem = (ImageTreeViewItem)parentItem.Items[i];
+
+            if (childItem.FullName.Equals(targetItem.FullName))
+            {
+                parentItem.Items.RemoveAt(i);
+                return true;
+            }
+
+
+            if (RemoveItemFromChildren(childItem, targetItem))
+                return true;
+        }
+
+        return false;
+    }
+
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="image"></param>
+    /// <returns></returns>
+    public ImageTreeViewItem getParent(Image image)
+    {
+        if (image != null)
+        {
+            object parent = image.Parent;
+
+            while (parent != null && !(parent is ImageTreeViewItem))
+            {
+                if (parent is FrameworkElement element)
+                {
+                    parent = element.Parent; // 다음 상위 요소로 이동
+                }
+                else
+                {
+                    parent = null;
+                }
+            }
+
+            return parent as ImageTreeViewItem;
+        }
+
+        return null;
+    }
+    #endregion
+
+    #region 파일 이름 찾기
+
+    /// <summary>
+    /// 두 파일 이름이 동일한지 확인합니다.
+    /// </summary>
+    /// <param name="fileName1">비교할 첫 번째 파일 이름입니다.</param>
+    /// <param name="fileName2">비교할 두 번째 파일 이름입니다.</param>
+    /// <returns>두 파일 이름이 동일하면 true, 그렇지 않으면 false를 반환합니다.</returns>
+    public bool IsFileNamesEqual(string fileName1, string fileName2) 
+    {
+        if (fileName1 == null)
+        {
+            throw new ArgumentNullException(nameof(fileName1), "The first file name cannot be null.");
+        }
+
+        if (fileName2 == null)
+        {
+            throw new ArgumentNullException(nameof(fileName2), "The second file name cannot be null.");
+        }
+
+        return fileName1.Equals(fileName2);
+    }
+
+
+    #endregion
+
+
+
+    #region 기타 
 
 
     /// <summary>
@@ -350,12 +658,69 @@ public class DirectoryManager
 
 
     /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="treeView"></param>
+    /// <returns></returns>
+    public ImageTreeViewItem FindSelectedItem(TreeView treeView)
+    {
+        if (treeView.Items.Count == 0)
+            return null;
+
+        foreach (ImageTreeViewItem item in treeView.Items)
+        {
+            if (item.IsSelected) { return item; }
+
+            if (item.Items.Count != 0)
+            {
+                ImageTreeViewItem subItem = FindSelectedSubItem(item);
+                if (subItem != null)
+                {
+                    return subItem;
+                }
+            }
+
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="item"></param>
+    /// <returns></returns>
+    private ImageTreeViewItem FindSelectedSubItem(ImageTreeViewItem item)
+    {
+        if (item.Items.Count == 0)
+            return null;
+
+        foreach (ImageTreeViewItem subItem in item.Items)
+        {
+            if (subItem.IsSelected) { return subItem; }
+
+            if (item.Items.Count != 0)
+            {
+                ImageTreeViewItem FindsubItem = FindSelectedSubItem(subItem);
+
+                if (FindsubItem != null)
+                {
+                    return FindsubItem;
+                }
+            }
+
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// 주어진 파일 경로의 확장자가 이미지 확장자 중 하나인지 확인합니다.
     /// 지원되는 이미지 확장자에는 .jpg, .jpeg, .bmp, .exif, .png, .tif, .tiff 등이 포함됩니다.
     /// </summary>
     /// <param name="path">확장자를 확인하고자 하는 파일의 경로입니다.</param>
     /// <returns>파일이 이미지 확장자를 가지면 true, 그렇지 않으면 false를 반환합니다.</returns>
-    private bool IsImageExtension(string path)
+    public bool IsImageExtension(string path)
     {
         string extension = Path.GetExtension(path);
         string _extension = extension.ToLower();
@@ -370,5 +735,10 @@ public class DirectoryManager
         }
         return false;
     }
+
+    #endregion
+
+
+
+    
 }
-#endregion

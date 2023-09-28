@@ -21,8 +21,12 @@ public class ImageTreeViewItem : TreeViewItem
     Image _bookMarkImage = null;
     ImageSource _bookMarkImageSource = null;
 
+    ImageCache imageCache = null;
+
     bool _isBookMarkSeleted = false;
 
+
+    public string _ImageName = string.Empty;
 	public string _FullName = string.Empty;
 
     public string FullName
@@ -54,6 +58,12 @@ public class ImageTreeViewItem : TreeViewItem
 		}
 	}
 
+    public string ImageName
+    {
+        set { _ImageName = value; }
+        get { return _ImageName; }
+    }
+
     public Image BookMarkImage
     {
         get { return _bookMarkImage; }
@@ -70,6 +80,11 @@ public class ImageTreeViewItem : TreeViewItem
         }
     }
 
+    public ImageCache ImageCache
+    {
+        get; set;
+    }
+
     public bool IsBookMarkSelected
     {
         get;set;
@@ -82,19 +97,27 @@ public class ImageTreeViewItem : TreeViewItem
 
         imageSource = builder._ImageSource;
         FullName = builder._FullName; 
+        
         if(builder._BookMarkSource != null) { this.BookMarkImageSource = builder._BookMarkSource; }
         if(builder._BookMarkImage != null) { this.BookMarkImage = builder._BookMarkImage; }
 
         if(builder._Image != null) { Image = builder._Image; }
+
         if(builder._textBlock != null) { _textBlock = builder._textBlock; }
         Text = builder._Text;
 
+        if(builder._ImageName != null) { _ImageName = builder._ImageName; }
+
+        //이벤트 등록 
         if(builder._Expanded != null) { this.Expanded += builder._Expanded; }
         if(builder._PreviewMouseDoubleClick != null) { this.PreviewMouseDoubleClick += builder._PreviewMouseDoubleClick; }
         if(builder._MouseDoubleClick != null) { this.MouseDoubleClick += builder._MouseDoubleClick; }
         if(builder._PreviewMouseDown != null) { this.PreviewMouseDown += builder._PreviewMouseDown; }
+
+
+
         if(builder._PreviewMouseLeftButtonDown != null) { this.PreviewMouseLeftButtonDown += builder._PreviewMouseLeftButtonDown; }
-        if(builder._PreviewMouseRightButtonDown != null) { this.PreviewMouseRightButtonDown += builder._PreviewMouseRightButtonDown; }
+        if(builder._MouseRightButtonDown != null) { this.MouseRightButtonDown += builder._MouseRightButtonDown; }
 
         if(builder._BookMarKImageLeftButtonDown != null)
         {
@@ -110,6 +133,7 @@ public class ImageTreeViewItem : TreeViewItem
         public Image _BookMarkImage = null;
         public ImageSource _BookMarkSource = null;
 
+        public string _ImageName = string.Empty;
 
         public string _FullName = string.Empty;
         public string _Text = string.Empty;
@@ -119,12 +143,19 @@ public class ImageTreeViewItem : TreeViewItem
         public MouseButtonEventHandler _PreviewMouseDoubleClick;
         public MouseButtonEventHandler _MouseDoubleClick;
         public MouseButtonEventHandler _PreviewMouseDown;
+        
         public MouseButtonEventHandler _PreviewMouseLeftButtonDown;
-        public MouseButtonEventHandler _PreviewMouseRightButtonDown;
+        public MouseButtonEventHandler _MouseRightButtonDown;
 
         public MouseButtonEventHandler _BookMarKImageLeftButtonDown;
         public ImageTreeViewItemBuilder()
         {        
+        }
+
+        public ImageTreeViewItemBuilder SetImageName(string imageName)
+        {
+            _ImageName = imageName;
+            return this;
         }
 
         public ImageTreeViewItemBuilder SetText(string Text)
@@ -181,27 +212,27 @@ public class ImageTreeViewItem : TreeViewItem
             return this;
         }
 
-        public ImageTreeViewItemBuilder WithMouseDoubleClickEvent(MouseButtonEventHandler handler)
+        public ImageTreeViewItemBuilder SetMouseDoubleClickEvent(MouseButtonEventHandler handler)
         {
             _MouseDoubleClick = handler;
             return this;
         }
 
-        public ImageTreeViewItemBuilder WithPreviewMouseDownEvent(MouseButtonEventHandler handler)
+        public ImageTreeViewItemBuilder SetPreviewMouseDownEvent(MouseButtonEventHandler handler)
         {
             _PreviewMouseDown = handler;
             return this;
         }
 
-        public ImageTreeViewItemBuilder WithPreviewMouseLeftButtonDownEvent(MouseButtonEventHandler handler)
+        public ImageTreeViewItemBuilder SetPreviewMouseLeftButtonDownEvent(MouseButtonEventHandler handler)
         {
             _PreviewMouseLeftButtonDown = handler;
             return this;
         }
 
-        public ImageTreeViewItemBuilder WithPreviewMouseRightButtonDownEvent(MouseButtonEventHandler handler)
+        public ImageTreeViewItemBuilder SetMouseRightButtonDownEvent(MouseButtonEventHandler handler)
         {
-            _PreviewMouseRightButtonDown = handler;
+            _MouseRightButtonDown = handler;
             return this;
         }
 
@@ -281,9 +312,7 @@ public class ImageTreeViewItem : TreeViewItem
         //테스트
         _bookMarkImage = new Image();
         _bookMarkImage.Margin = new System.Windows.Thickness(2);
-        _bookMarkImage.MouseEnter += ImageEnterEvent;
-        _bookMarkImage.MouseLeave += ImageLeaveEvent;
-
+      
 
         stack.Children.Add(_Image);
         stack.Children.Add(_textBlock);
@@ -294,45 +323,4 @@ public class ImageTreeViewItem : TreeViewItem
 	}
 
     
-
-
-    private void ImageEnterEvent(object sender, MouseEventArgs e)
-    {
-
-        //Image targetImage = sender as Image;
-
-        //System.Drawing.Bitmap bitmap = Resource1.FullStar;
-        //System.Drawing.Bitmap resize = new System.Drawing.Bitmap(bitmap, new System.Drawing.Size(14, 14));
-        
-        //BitmapImage bitmapImage = new BitmapImage();
-        //bitmapImage.BeginInit();
-        //MemoryStream ms = new MemoryStream();
-        //resize.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
-        //ms.Seek(0, SeekOrigin.Begin);
-        //bitmapImage.StreamSource = ms;
-        //bitmapImage.EndInit();
-        //targetImage.Margin = new System.Windows.Thickness(2);
-        //targetImage.Source = bitmapImage;
-
-
-    }
-
-    private void ImageLeaveEvent(object sender, MouseEventArgs e)
-    {
-        //Image targetImage = sender as Image;
-
-
-        //System.Drawing.Bitmap bitmap = Resource1.EmptyStar ;
-        //System.Drawing.Bitmap resize = new System.Drawing.Bitmap(bitmap, new System.Drawing.Size(14, 14));
-
-        //BitmapImage bitmapImage = new BitmapImage();
-        //bitmapImage.BeginInit();
-        //MemoryStream ms = new MemoryStream();
-        //resize.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
-        //ms.Seek(0, SeekOrigin.Begin);
-        //bitmapImage.StreamSource = ms;
-        //bitmapImage.EndInit();
-        //targetImage.Margin = new System.Windows.Thickness(2);
-        //targetImage.Source = bitmapImage;
-    }
 }

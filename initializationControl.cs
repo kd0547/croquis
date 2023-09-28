@@ -1,4 +1,6 @@
-﻿namespace initializationControl
+﻿using System.Windows;
+
+namespace initializationControl
 {
  
 
@@ -12,36 +14,48 @@
 
     public class ControlResize
     {
-        public double default_width { get; set; }
-        public double default_height { get; set; }
+        
+
+        public double DefaultWidth { get; set; }
+        public double DefaultHeight { get; set; }
+        public Thickness DefaultLocation { get; set; }
+        
 
         public ControlResize() { }
 
-        public ControlResize(double default_width, double default_height)
+        public ControlResize(double defaultWidth, double defaultHeight,Thickness thickness)
         {
-            this.default_width = default_width;
-            this.default_height = default_height;
+            this.DefaultWidth = defaultWidth;
+            this.DefaultHeight = defaultHeight;
+            this.DefaultLocation = thickness;
         }
 
-        public ControlSize minus(double _width, double _height)
+
+        public ControlResize(double defaultWidth, double defaultHeight)
+        {
+            this.DefaultWidth = defaultWidth;
+            this.DefaultHeight = defaultHeight;
+        }
+
+        public ControlSize minus(double width, double height)
         {
 
             return new ControlSize()
             {
-                width = _width - default_width,
-                height = _height - default_height
+                width = width - DefaultWidth,
+                height = height - DefaultHeight
             };
 
         }
 
-        public double plusHeight(double _height)
+        public double plusHeight(double height)
         {
-            return default_height + _height;
+            return DefaultHeight + height;
         }
 
-        public double plusWidth(double _width)
+        public double plusWidth(double width)
         {
-            return default_width + _width;
+            return DefaultWidth + width;
         }
 
     }
