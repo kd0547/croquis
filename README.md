@@ -19,6 +19,7 @@
 
 ## Links
 - [download](https://github.com/kd0547/croquis/releases)
+- [사용방법](https://jade-frill-5b8.notion.site/0a6bb03743ef40699ad8aa1ba83e7ce4?pvs=4)
 
 
 </br>
