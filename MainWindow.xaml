@@ -162,10 +162,12 @@
                             <RowDefinition Height="30"/>
                             <RowDefinition Height="65*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" x:Name="preview" Height="30" Width="55" FontSize="14"  VerticalAlignment="Center" HorizontalAlignment="Left" Margin="4" Foreground="#FFD8D8D8" TextAlignment="Center" ><Run Language="ko-kr" Text="미리보기"/><Run/></TextBlock>
+                        <TextBlock Grid.Row="0" x:Name="preview" Height="20" Width="62" FontSize="14"  VerticalAlignment="Center" HorizontalAlignment="Left" Margin="4,0,0,0" Foreground="#FFD8D8D8" TextAlignment="Center" ><Run Language="ko-kr" Text="미리보기"/><Run/></TextBlock>
 
-                        <ComboBox Grid.Row="0" x:Name="sortList" Height="30" Width="150" HorizontalAlignment="Right" Background="#FF494949" FontSize="12" >
-                            <ComboBoxItem Name="FileNameSort" FontSize="12" IsSelected="True">파일 이름 정렬</ComboBoxItem>
+                        <ComboBox x:Name="sortList" Height="26" Background="#FF494949" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Right" Width="127" SelectionChanged="sortList_SelectionChanged" >
+                            <ComboBoxItem Name="FileNameSort" FontSize="12" IsSelected="True">
+                                <TextBlock  >파일 이름 정렬</TextBlock>
+                            </ComboBoxItem>
 
                         </ComboBox>
 
@@ -311,15 +313,19 @@
                     <TextBlock VerticalAlignment="Top" FontSize="20"
                        Margin="60,246,0,0" Foreground="#FFD8D8D8" HorizontalAlignment="Left" Width="7"  > :</TextBlock>
 
-                    <CheckBox x:Name="fullDisplay" IsChecked="False" Content="전체화면" VerticalAlignment="Top" 
+                    <CheckBox x:Name="fullDisplay" IsChecked="False"  VerticalAlignment="Top" 
                               Focusable="False"
-                    Margin="12,295,0,0" Width="70"/>
+                    Margin="12,295,0,0" Width="70">
+                        <TextBlock Foreground="#FFD8D8D8">전체화면</TextBlock>
+                    </CheckBox>
 
-                    <CheckBox x:Name="TopMost" IsChecked="False" Content="항상 맨 위" VerticalAlignment="Top" 
+                    <CheckBox x:Name="TopMost" IsChecked="False"  VerticalAlignment="Top" 
                           Checked="TopMost_Checked"
                           Unchecked="TopMost_Unchecked"
                           Focusable="False"
-                    Margin="12,327,0,0" Width="70"/>
+                    Margin="12,327,0,0" Width="70">
+                        <TextBlock Foreground="#FFD8D8D8">항상 맨 위</TextBlock>
+                    </CheckBox>
 
 
                     <TextBox x:Name="RefreshHour" 
@@ -359,7 +365,7 @@
                             </ControlTemplate>
                         </TextBox.Template>
                     </TextBox>
-                    
+
                     <TextBox x:Name="RefreshSecond" 
                         MinWidth="0" MinHeight="0"
                         TextWrapping="Wrap" Height="31"
