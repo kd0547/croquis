@@ -1339,13 +1339,14 @@ namespace croquis
                     // 디렉토리 정보 가져오기
                     DirectoryInfo directory = new DirectoryInfo(clickItem.Tag as string);
                     FileInfo[] fileInfos = directory.GetFiles();
-
                     if (fileInfos.Length == 0)
                         return;
 
                     // 이미지의 그리드 크기를 계산하고 설정
                     imageManager.CalculateAndSetGridSizeForImages(PictureViewer, fileInfos);
                     // 파일로부터 이미지 미리보기를 로드하고 표시
+                   
+
                     DisplayImagePreviewsFromFiles(fileInfos);
 
                     
@@ -1458,7 +1459,7 @@ namespace croquis
             await Task.Run(() =>
             {
                 // 파일 이름 먼저출력 
-                foreach (FileInfo file in fileInfos)
+                foreach (FileInfo file in fileInfos.OrderBy(f => f.Name))
                 {
                     if (!imageStream.IsImageExtension(file.FullName))
                     {
