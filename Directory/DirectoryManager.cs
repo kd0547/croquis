@@ -26,6 +26,7 @@ public class DirectoryManager
     /// 파일탐색기에서 사용한다. 
     /// 사용자 컴퓨터의 로컬 드라이브를 가져온다.
     /// </summary>
+    /// 
     public void GetLocalDrives(TreeView treeView)
     {
         foreach (string dir in Directory.GetLogicalDrives())

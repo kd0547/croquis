@@ -104,7 +104,7 @@
 
                     <TextBlock Grid.Row="0" Foreground="#FFD8D8D8" x:Name="croquisList" Height="20" Margin="4"  FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Left" TextAlignment="Center" FontWeight="Medium"><Run Foreground="#FFD8D8D8" Text="크로키 목록"/></TextBlock>
 
-                    <TreeView Grid.Row="1" x:Name="CroquisTreeView" AllowDrop="True">
+                    <TreeView Grid.Row="1" x:Name="CroquisTreeView" AllowDrop="True" Background="{x:Null}">
 
 
                         <TreeView.ContextMenu>
@@ -146,10 +146,10 @@
                             </Grid.ColumnDefinitions>
 
                             <TextBlock Grid.Column="0" Foreground="#FFD8D8D8" x:Name="fileSearch" Height="20"  FontSize="14" VerticalAlignment="Center" TextAlignment="Center" FontWeight="Medium"><Run Foreground="#FFD8D8D8" Text="탐색기"/></TextBlock>
-                            <TextBlock Grid.Column="1" Foreground="#FFD8D8D8" x:Name="bookMark"   Height="20"   FontSize="14" VerticalAlignment="Center" TextAlignment="Center" FontWeight="Medium"><Run Foreground="#FFD8D8D8" Text="즐겨찾기"/></TextBlock>
+                            <TextBlock Grid.Column="1" Foreground="{x:Null}" x:Name="bookMark"   Height="20"   FontSize="14" VerticalAlignment="Center" TextAlignment="Center" FontWeight="Medium"><Run Foreground="#FFD8D8D8" Text="즐겨찾기"/></TextBlock>
                         </Grid>
 
-                        <TreeView x:Name="DirectoryView" Visibility="Visible" AllowDrop="True" Grid.Row="1"/>
+                        <TreeView x:Name="DirectoryView" Visibility="Visible" AllowDrop="True" Grid.Row="1" Background="{x:Null}"/>
                         <TreeView x:Name="BookMarkView" Visibility="Hidden" AllowDrop="True" Grid.Row="1"/>
                     </Grid>
 
@@ -164,7 +164,7 @@
                         </Grid.RowDefinitions>
                         <TextBlock Grid.Row="0" x:Name="preview" Height="20" Width="62" FontSize="14"  VerticalAlignment="Center" HorizontalAlignment="Left" Margin="4,0,0,0" Foreground="#FFD8D8D8" TextAlignment="Center" ><Run Language="ko-kr" Text="미리보기"/><Run/></TextBlock>
 
-                        <ComboBox x:Name="sortList" Height="26" Background="#FF494949" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Right" Width="127" SelectionChanged="sortList_SelectionChanged" >
+                        <ComboBox x:Name="sortList" Height="26" Background="{x:Null}" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Right" Width="127">
                             <ComboBoxItem Name="FileNameSort" FontSize="12" IsSelected="True">
                                 <TextBlock  >파일 이름 정렬</TextBlock>
                             </ComboBoxItem>
@@ -172,7 +172,7 @@
                         </ComboBox>
 
 
-                        <ListBox Grid.Row="1" x:Name="PictureViewer" AllowDrop="True" Background="#FF494949" >
+                        <ListBox Grid.Row="1" x:Name="PictureViewer" AllowDrop="True" Background="{x:Null}" BorderBrush="{x:Null}" >
                             <ListBox.ItemsPanel>
                                 <ItemsPanelTemplate x:Name="picBoxTemplate">
                                     <UniformGrid Rows="{Binding Rows}" Columns="{Binding Cols}"/>
@@ -193,7 +193,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
-                    <Image x:Name="mainContent" Grid.Row="0"/>
+                    <Image x:Name="mainContent" Grid.Row="0" Margin="0,0,0,0"/>
                 </Grid>
 
             </Border>

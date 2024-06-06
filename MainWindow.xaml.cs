@@ -4,6 +4,7 @@ using OpenCvSharp;
 using System;
 
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing.Drawing2D;
@@ -83,6 +84,9 @@ namespace croquis
 
         private double PreGridMinSize;
 
+        private BackgroundWorker imageLoaderWorker;
+
+        private BackgroundWorker croquisPlayerWorker;
 
         public MainWindow()
         {
@@ -100,6 +104,8 @@ namespace croquis
                 DirectoryView = DirectoryView,
                 PictureViewer = PictureViewer,
             };
+
+
             fileWatcher.Config();
             //테스트
             DisplayVisibility();
@@ -125,8 +131,7 @@ namespace croquis
             LoadFile();
         }
 
-
-
+        
 
         /// <summary>
         /// 여러 컨트롤의 초기 크기를 설정하고 관련 정보를 저장하는 메서드입니다.
@@ -172,7 +177,7 @@ namespace croquis
             directoryManager.GetLocalDrives(DirectoryView);
 
             MainWin.SizeChanged += new System.Windows.SizeChangedEventHandler(this.WinFormResizeEvent);
-            MainWin.StateChanged += this.WindowStateChangedEvent;
+            //MainWin.StateChanged += this.WindowStateChangedEvent;
 
             //제목표시줄 
             CreateSubjectMenu(SubjectMenu);
@@ -200,7 +205,7 @@ namespace croquis
 
 
         /// <summary>
-        /// 
+        /// 프로그램을 종료하면서 
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
@@ -1249,6 +1254,12 @@ namespace croquis
         }
 
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="fullName"></param>
+        /// <param name="DirectoryView"></param>
+        /// <returns></returns>
         public ImageTreeViewItem SearchFullName(string fullName, TreeView DirectoryView) 
         {
             if (DirectoryView.Items.Count == 0) return null;
@@ -1465,10 +1476,8 @@ namespace croquis
                     {
                         continue;
                     }
-                    // UI 스레드로 디스패치하여 UI 요소 생성 및 초기화
                     Dispatcher.Invoke(() =>
                     {
-                        //UI 요소의 생성: 'UI 요소'는 일반적으로 UI 스레드에서만 생성할 수 있습니다.UI 스레드 이외의 스레드에서 UI 요소를 생성하려고 시도하면 'System.InvalidOperationException' 예외가 발생합니다.
                         ImageBlock imageBlock = new ImageBlock(file.Name);
                         imageBlock._Image.Tag = file.FullName;
                         imageBlock._Image.MouseLeftButtonDown += LoadAndDisplayOriginalImageOnClick;
@@ -1482,10 +1491,10 @@ namespace croquis
 
             await Task.Run(() =>
             {
-                // 파일 이름 먼저출력 
+                //이미지 추가
                 foreach (FileInfo file in fileInfos)
                 {
-                    imageManager.DisplayImageOnUIThread(PictureViewer,file.FullName);
+                    imageManager.PrintPreviewImage(PictureViewer,file.FullName);
                 }
             });
 

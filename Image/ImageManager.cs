@@ -66,10 +66,10 @@ public class ImageManager
 
 
     /// <summary>
-    ///  지정된 이미지 파일을 UI 스레드에서 로드하여 미리보기 컨트롤에 표시합니다.
+    /// 미리보기 이미지 출력
     /// </summary>
     /// <param name="fullName"></param>
-    public async void DisplayImageOnUIThread(System.Windows.Controls.ListBox pictureView, string fullName)
+    public async void PrintPreviewImage(System.Windows.Controls.ListBox pictureView, string fullName)
     {
         // 이미지 파일을 읽어와 MemoryStream에 저장합니다.
         using (MemoryStream memoryStream = imageStream.LoadImageToMemoryStream(fullName))
